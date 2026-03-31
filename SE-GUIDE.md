@@ -6,6 +6,12 @@ It runs as a Cowork plugin inside Claude Desktop. Two skills: **convert** (PDF t
 
 ---
 
+## Prerequisites
+
+- **Claude Pro, Team, or Enterprise subscription** — Cowork mode is required, which is not available on the free tier
+- **Python 3.10+** and **git** — the setup script checks both
+- **macOS or Linux** — the PDF converter and shell scripts assume a Unix environment
+
 ## Setup (one time, ~5 minutes)
 
 ### 1. Clone and run setup

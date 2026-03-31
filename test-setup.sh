@@ -1,6 +1,6 @@
 #!/bin/bash
 # LabSmith — Setup Script Tester
-# Simulates missing prerequisites by hiding commands from PATH.
+# Simulates missing prerequisites by placing fake stubs ahead of real commands in PATH.
 #
 # Usage:
 #   bash test-setup.sh                  # run all scenarios
@@ -8,13 +8,19 @@
 #   bash test-setup.sh --no-git         # simulate missing git
 #   bash test-setup.sh --no-brew        # simulate missing Homebrew
 #   bash test-setup.sh --old-python     # simulate Python 3.9
-#   bash test-setup.sh --no-python --no-git  # combine flags
-#   bash test-setup.sh --clean          # full clean install simulation
-
-set -e
+#   bash test-setup.sh --no-python --no-git
+#   bash test-setup.sh --clean          # python + git + brew missing
+#
+# No `set -e` — each scenario runs to completion and reports exit status.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FAKE_BIN="/tmp/labsmith-test-bin"
+
+# Feed enough "n" answers for multiple read -p prompts (Homebrew + brew install, etc.)
+auto_decline_installs() {
+    # One line per prompt; setup.sh may ask up to 2 times on macOS
+    printf '%s\n' n n n n n n n
+}
 
 # ── Build fake command stubs ──
 setup_fakes() {
@@ -22,27 +28,40 @@ setup_fakes() {
     mkdir -p "$FAKE_BIN"
 }
 
-# Create a stub that mimics a missing command (exits with error)
 hide_command() {
     local cmd="$1"
     cat > "$FAKE_BIN/$cmd" << 'STUB'
 #!/bin/bash
-echo "labsmith-test: $0 is hidden for testing" >&2
+echo "labsmith-test: $(basename "$0") is a stub (simulating missing / broken command)" >&2
 exit 127
 STUB
     chmod +x "$FAKE_BIN/$cmd"
 }
 
-# Create a Python stub that reports version 3.9
+# Python stub: version probe prints 3.9; other invocations delegate to a real interpreter (not from FAKE_BIN)
 fake_old_python() {
-    cat > "$FAKE_BIN/python3" << 'STUB'
+    local real_py=""
+    for cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
+        if [ -x "$cand" ]; then
+            real_py="$cand"
+            break
+        fi
+    done
+    cat > "$FAKE_BIN/python3" << EOF
 #!/bin/bash
-if [[ "$*" == *"sys.version_info"* ]]; then
+# labsmith-test: old-python — version check returns 3.9; else real interpreter
+case "\$*" in
+  *sys.version_info*)
     echo "3.9"
-else
-    exec /usr/bin/env python3.real "$@"
+    exit 0
+    ;;
+esac
+if [ -n "$real_py" ] && [ -x "$real_py" ]; then
+  exec "$real_py" "\$@"
 fi
-STUB
+echo "labsmith-test: python3 stub — no system python to delegate to" >&2
+exit 127
+EOF
     chmod +x "$FAKE_BIN/python3"
 }
 
@@ -65,12 +84,12 @@ for arg in "$@"; do
             echo "Usage: bash test-setup.sh [flags]"
             echo ""
             echo "Flags (combine as needed):"
-            echo "  --no-python    Hide python3"
-            echo "  --no-git       Hide git"
-            echo "  --no-brew      Hide brew"
-            echo "  --old-python   Fake Python 3.9"
-            echo "  --clean        All prerequisites missing"
-            echo "  (no flags)     Run all scenarios one by one"
+            echo "  --no-python    Stub python3 (exit 127)"
+            echo "  --no-git       Stub git (exit 127)"
+            echo "  --no-brew      Stub brew (exit 127)"
+            echo "  --old-python   Fake Python 3.9 for version probe"
+            echo "  --clean        Stub python3, git, and brew"
+            echo "  (no flags)     Run all scenarios sequentially"
             exit 0
             ;;
         *)
@@ -80,20 +99,19 @@ for arg in "$@"; do
     esac
 done
 
-# ── Run a single scenario ──
 run_scenario() {
     local name="$1"
     shift
+    local exit_code=0
 
     echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  SCENARIO: $name"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
     setup_fakes
 
-    # Apply each requested hide/fake
     for cmd in "$@"; do
         case "$cmd" in
             no-python)  hide_command python3 ;;
@@ -103,30 +121,44 @@ run_scenario() {
         esac
     done
 
-    # Run setup.sh with fake bin first in PATH
-    # Use 'yes n' to auto-decline install prompts (we're just testing detection)
-    echo "(Auto-declining any install prompts with 'n')"
+    echo "(Auto-declining install prompts with 'n')"
     echo ""
-    yes n 2>/dev/null | PATH="$FAKE_BIN:$PATH" bash "$SCRIPT_DIR/setup.sh" "$SCRIPT_DIR" 2>&1 || true
+
+    # Prepend fake bin so stubs shadow real commands — same as users with broken PATH shims
+    PATH="$FAKE_BIN:$PATH"
+    export PATH
+
+    auto_decline_installs | bash "$SCRIPT_DIR/setup.sh" "$SCRIPT_DIR" 2>&1
+    exit_code=${PIPESTATUS[1]}
 
     echo ""
-    echo "  ^^^ End of scenario: $name"
+    if [ "$exit_code" -eq 0 ]; then
+        echo "  RESULT: setup.sh exited 0 (success)"
+    else
+        echo "  RESULT: setup.sh exited $exit_code (expected for missing prerequisites / declined installs)"
+    fi
+    echo "  --- End scenario: $name ---"
     echo ""
 }
 
-# ── Single scenario mode ──
+# ── Single scenario mode (flags) ──
 if ! $RUN_ALL; then
     label=""
     cmds=()
 
     if $CLEAN; then
-        label="Clean install (nothing available)"
+        label="clean (no python, git, or brew)"
         cmds=(no-python no-git no-brew)
     else
-        $NO_PYTHON && { label="${label}no-python "; cmds+=(no-python); }
-        $OLD_PYTHON && { label="${label}old-python "; cmds+=(old-python); }
-        $NO_GIT && { label="${label}no-git "; cmds+=(no-git); }
-        $NO_BREW && { label="${label}no-brew "; cmds+=(no-brew); }
+        $NO_PYTHON && cmds+=(no-python)
+        $OLD_PYTHON && cmds+=(old-python)
+        $NO_GIT && cmds+=(no-git)
+        $NO_BREW && cmds+=(no-brew)
+        label=""
+        for c in "${cmds[@]}"; do
+            [ -z "$label" ] && label="$c" || label="$label $c"
+        done
+        [ -z "$label" ] && label="(no scenario cmds — check flags)"
     fi
 
     run_scenario "$label" "${cmds[@]}"
@@ -134,23 +166,23 @@ if ! $RUN_ALL; then
     exit 0
 fi
 
-# ── Run all scenarios ──
+# ── All scenarios ──
 echo ""
-echo "Running all setup scenarios..."
-echo "(Each scenario auto-declines install prompts)"
+echo "Running all setup scenarios (each auto-declines installs where prompted)"
+echo ""
 
-run_scenario "Everything installed (happy path)"
+run_scenario "Happy path (no stubs)"
 run_scenario "Missing Python"                     no-python
 run_scenario "Old Python (3.9)"                   old-python
 run_scenario "Missing git"                        no-git
-run_scenario "Missing Python + git"               no-python no-git
-run_scenario "Missing Homebrew + Python"          no-brew no-python
-run_scenario "Clean install (nothing)"            no-python no-git no-brew
+run_scenario "Missing Python + git"              no-python no-git
+run_scenario "Missing Homebrew + Python"         no-brew no-python
+run_scenario "Clean (no python, git, brew)"      no-python no-git no-brew
 
 rm -rf "$FAKE_BIN"
 
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  All scenarios complete"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

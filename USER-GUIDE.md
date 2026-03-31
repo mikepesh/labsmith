@@ -6,6 +6,20 @@ It runs as a Cowork plugin inside Claude Desktop. Two skills: **convert** (PDF t
 
 ---
 
+## Feedback wanted
+
+This is an early release and I'd love your input. If something doesn't work, doesn't make sense, or could be better — I want to hear it. Don't worry about being polite; blunt and specific is the most helpful.
+
+**How to give feedback:** Open an issue at [github.com/mikepesh/labsmith/issues](https://github.com/mikepesh/labsmith/issues). Pick whichever fits:
+
+- **Bug** — something broke or didn't work as described
+- **Idea** — a feature, workflow change, or module improvement you'd find useful
+- **Question** — anything unclear in the guide or the tool itself
+
+No GitHub account? Just message me directly — Slack, email, whatever works.
+
+---
+
 ## Prerequisites
 
 - **Claude Pro, Team, or Enterprise subscription** — Cowork mode is required, which is not available on the free tier

@@ -332,15 +332,19 @@ echo "  Running verification"
 echo "═══════════════════════════════════════"
 echo ""
 
-echo "Testing PDF converter..."
-MARKER_OUTPUT=$(bash "$MARKER_DIR/process-now.sh" 2>&1) || true
-if echo "$MARKER_OUTPUT" | grep -q "nothing to do"; then
-    echo "  $PASS Marker works"
-else
-    echo "  $FAIL Marker test failed:"
-    echo "     $MARKER_OUTPUT"
+echo "Testing PDF converter (quick check — does not convert files in to-process/)..."
+echo "  (Use labsmith.sh or bash marker/process-now.sh when you are ready to convert.)"
+# Running process-now.sh with no args would convert every PDF in to-process/ (very slow) and would
+# not print "nothing to do", incorrectly failing this step after a successful run.
+if ! "$VENV_DIR/bin/python3" -c "import pymupdf4llm, pymupdf" 2>/dev/null; then
+    echo "  $FAIL Marker venv cannot import pymupdf4llm / pymupdf"
     exit 1
 fi
+if ! bash -n "$MARKER_DIR/process-now.sh" 2>/dev/null; then
+    echo "  $FAIL process-now.sh has a bash syntax error"
+    exit 1
+fi
+echo "  $PASS Marker stack and process-now.sh OK"
 
 # ── Verify chunker + query ──
 echo "Testing chunker and query tool..."

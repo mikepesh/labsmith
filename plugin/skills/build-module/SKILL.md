@@ -70,14 +70,16 @@ Use the AskUserQuestion tool for structured fields where possible.
 From **LABSMITH_ROOT**:
 
 ```bash
-python3 query.py search "<topic keywords>" --workshop <workshop> --db labsmith.db
+python3 query.py --db labsmith.db search "<topic keywords>" --workshop <workshop>
 ```
 
 Review the results (id, section_title, source_doc, doc_type, line_count). Select the most relevant chunks and load their content:
 
 ```bash
-python3 query.py get <id1> <id2> <id3> ... --db labsmith.db
+python3 query.py --db labsmith.db get <id1> <id2> <id3> ...
 ```
+
+(`--db` must appear immediately after `query.py`, before the subcommand.)
 
 **Token efficiency rule:** Only load chunks you will actually use. Don't load everything — be selective based on section titles and doc types. Prefer:
 

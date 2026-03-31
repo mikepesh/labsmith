@@ -18,7 +18,7 @@ python3 chunker.py path/to/doc.md --workshop cisco-to-fortinet --doc-type admin 
 # CLI-style reference PDFs → markdown
 python3 chunker.py path/to/cli.md --workshop cisco-to-fortinet --doc-type cli --db labsmith.db
 
-# Query
+# Query (default DB: labsmith.db in cwd). If you pass `--db`, put it before the subcommand.
 python3 query.py search "VLAN" --workshop cisco-to-fortinet
 python3 query.py list --workshop cisco-to-fortinet
 python3 query.py get 1 2

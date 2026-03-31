@@ -129,8 +129,10 @@ Show the user:
 
 ```bash
 cd "$LABSMITH_ROOT"
-python3 query.py list --workshop <workshop-name> --db labsmith.db
+python3 query.py --db labsmith.db list --workshop <workshop-name>
 ```
+
+(`--db` must come before the subcommand `list`, `search`, `get`, or `stats`.)
 
 ## Error handling
 

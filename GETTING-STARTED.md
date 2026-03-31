@@ -65,10 +65,9 @@ cp ~/Downloads/FortiOS-Admin-Guide.pdf marker/to-process/
 # Step 2 — Run Marker
 bash marker/process-now.sh
 
-# Step 3 — Chunk into SQLite
+# Step 3 — Chunk into SQLite (--doc-type optional; default is reference)
 python3 chunker.py marker/output/FortiOS-Admin-Guide.md \
-  --workshop cisco-to-fortinet \
-  --doc-type admin
+  --workshop cisco-to-fortinet
 
 # Step 4 — Verify
 python3 query.py list --workshop cisco-to-fortinet
@@ -76,10 +75,11 @@ python3 query.py list --workshop cisco-to-fortinet
 
 ### Doc types
 
-Use the right `--doc-type` flag for each document:
+Omit `--doc-type` to use the default **`reference`**. Add `--doc-type` when you want a specific label or CLI-style splitting:
 
 | Type | Use for |
 |------|---------|
+| `reference` | Default — general docs (omit the flag) |
 | `admin` | Administration guides, user guides |
 | `cli` | CLI references, command references |
 | `datasheet` | Product datasheets, spec sheets |
@@ -201,7 +201,7 @@ The whole point of LabSmith is token efficiency. Here's the flow:
 |---------|-----|
 | `pymupdf4llm` not found | `cd marker && python3 -m venv venv && venv/bin/pip install pymupdf4llm` |
 | Marker says "No files in to-process/" | Put PDFs in `marker/to-process/` first |
-| Chunker says invalid doc-type | Use one of: `admin`, `cli`, `datasheet`, `release-notes` |
+| Chunker says invalid doc-type | Use `reference` (default) or: `admin`, `cli`, `datasheet`, `release-notes` |
 | query.py returns nothing | Run `python3 query.py stats` to check if anything is in the DB |
 | Module is too short (<100 lines) | Tell Claude to expand — short modules are always incomplete |
 | Plugin skills not showing in Cowork | Check that the labsmith plugin is installed and the folder is mounted |

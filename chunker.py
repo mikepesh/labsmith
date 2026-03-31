@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 
-ALLOWED_DOC_TYPES = frozenset({"admin", "cli", "datasheet", "release-notes"})
+ALLOWED_DOC_TYPES = frozenset({"admin", "cli", "datasheet", "release-notes", "reference"})
 
 # Headings that are really code fences misparsed as markdown (common in PDF→md).
 CLI_HEADING_VERBS = frozenset(
@@ -352,10 +352,10 @@ def main() -> None:
     parser.add_argument("--workshop", required=True, help="Workshop tag (e.g. cisco-to-fortinet)")
     parser.add_argument(
         "--doc-type",
-        required=True,
         dest="doc_type",
         metavar="TYPE",
-        help="One of: admin, cli, datasheet, release-notes",
+        default="reference",
+        help="Optional. One of: reference (default), admin, cli, datasheet, release-notes",
     )
     parser.add_argument("--db", default="labsmith.db", help="SQLite database path")
     args = parser.parse_args()

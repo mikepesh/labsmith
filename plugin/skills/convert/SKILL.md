@@ -117,10 +117,10 @@ For each converted markdown file:
 
 ```bash
 cd "$LABSMITH_ROOT"
-python3 chunker.py "marker/output/<filename>.md" --workshop <workshop-name> --doc-type <type> --db labsmith.db
+python3 chunker.py "marker/output/<filename>.md" --workshop <workshop-name> --db labsmith.db
 ```
 
-Use `--doc-type cli` for CLI references; otherwise `admin`, `datasheet`, or `release-notes` as appropriate.
+Optional: add `--doc-type` when you want a specific category or CLI-style splitting: `reference` (default if omitted), `admin`, `cli`, `datasheet`, `release-notes`. Use `--doc-type cli` for CLI references.
 
 ### Step 5 — Copy markdown to workshop references
 

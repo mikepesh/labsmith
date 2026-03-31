@@ -61,9 +61,9 @@ cp ~/Downloads/FortiOS-Admin-Guide.pdf marker/to-process/
 # Step 2: Convert PDF to markdown
 bash marker/process-now.sh
 
-# Step 3: Chunk the markdown into SQLite
+# Step 3: Chunk the markdown into SQLite (doc-type optional; default is reference)
 python3 chunker.py marker/output/FortiOS-Admin-Guide.md \
-  --workshop my-workshop --doc-type admin
+  --workshop my-workshop
 
 # Step 4: Verify
 python3 query.py stats --workshop my-workshop
@@ -71,7 +71,20 @@ python3 query.py stats --workshop my-workshop
 
 Large PDFs (100+ MB) take time. The script shows progress as it goes — page count, percentage, estimated time remaining.
 
-**Doc types:** Use `--doc-type admin` for admin guides, `cli` for CLI references, `datasheet` for datasheets, `release-notes` for release notes. Pick whichever matches the document. You can load multiple documents into the same workshop.
+**Doc types (optional):** If you omit `--doc-type`, chunks are stored as **`reference`** (default) — general material using the same heading-based splitting as admin guides. Add `--doc-type` when you want to categorize or use special handling:
+
+| Type | When to use |
+|------|-------------|
+| **`reference`** (default) | General PDFs; no flag needed. |
+| **`admin`** | Admin guides (explicit label in stats/search). |
+| **`cli`** | CLI references (config-block-aware splitting). |
+| **`datasheet`** | Product datasheets. |
+| **`release-notes`** | Release notes. |
+
+Example with classification:  
+`python3 chunker.py marker/output/Guide.md --workshop my-workshop --doc-type cli`
+
+You can load multiple documents into the same workshop with different types over time.
 
 ### Phase 2 — Build modules
 
@@ -218,7 +231,7 @@ I mention this for two reasons. First, transparency — you should know that AI 
 
 **"No files in to-process/"** — Put your PDFs in `marker/to-process/` before running `process-now.sh`.
 
-**Chunker says "invalid doc-type"** — Valid types are: `admin`, `cli`, `datasheet`, `release-notes`.
+**Chunker says "invalid doc-type"** — Valid types are: `reference` (default), `admin`, `cli`, `datasheet`, `release-notes`. Omit the flag to use `reference`.
 
 **query.py returns nothing** — Run `python3 query.py stats` to check if the database has any chunks. If empty, you need to run the convert pipeline first.
 

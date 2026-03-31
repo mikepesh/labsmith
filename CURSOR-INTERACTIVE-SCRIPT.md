@@ -123,23 +123,31 @@ After Enter, scan the directory and list what was found:
   Total: 3 PDFs, 202 MB
 ```
 
-If no PDFs found, say so and offer **wait again** (Enter), **go back** to workshop selection (`b`), or **quit** (`q`).
+If no PDFs found, say so and offer **wait again** (Enter), **go back** to workshop selection (`w`), or **quit** (`q`).
 
 ### Step 5 — Doc Type & Convert
 
-For each PDF, ask the doc type (exact prompt text):
+First offer the default: **`reference`** for all files (no per-file questions) unless the user opts in to classify.
 
 ```
   ═══ Document Types ═══
 
+  Default doc type is reference (general material).
+  Classify each file (a/c/d/r)? [y/N]
+```
+
+If **N** or Enter: use `reference` for every file and call `chunker.py` **without** `--doc-type` (default).
+
+If **y**: for each PDF, ask the doc type:
+
+```
   What type of document is each file?
 
     [a] Admin guide    [c] CLI reference
     [d] Datasheet      [r] Release notes
+    [Enter]            reference
 
   FortiOS-Admin-Guide.pdf ............... type: a
-  FortiOS-CLI-Reference.pdf ............. type: c
-  FortiSwitch-Admin-Guide.pdf ........... type: a
 ```
 
 If there's only one file, just ask once. If multiple files are the same type, offer "Apply to all? (y/n)".
@@ -156,7 +164,7 @@ Trailing ellipsis on that line is optional; `q` must exit without starting conve
 
 For each file:
 1. Run `bash marker/process-now.sh <filename>` — show the progress output in real time (it already prints batch progress with percentage and ETA)
-2. When Marker finishes, run `python3 chunker.py marker/output/<name>.md --workshop <workshop> --doc-type <type>`
+2. When Marker finishes, run `python3 chunker.py marker/output/<name>.md --workshop <workshop>` (optional: `--doc-type admin|cli|datasheet|release-notes`; default is `reference`)
 3. Show chunk count after each file
 
 Use a visual separator between files:
@@ -215,7 +223,7 @@ Use a visual separator between files:
 
 - `setup.sh` — prerequisite detection and install logic. **Reuse the exact same detection patterns** (direct invocation with `2>/dev/null`, not `command -v`). The Homebrew install flow, apt flow, and all error messages should match.
 - `marker/process-now.sh` — PDF conversion pipeline. Understand how it's called (`bash marker/process-now.sh` for all, `bash marker/process-now.sh filename.pdf` for one), what it outputs, and how progress reporting works.
-- `chunker.py` — CLI: `python3 chunker.py <input.md> --workshop <name> --doc-type <type> --db labsmith.db`. Valid doc types: `admin`, `cli`, `datasheet`, `release-notes`.
+- `chunker.py` — CLI: `python3 chunker.py <input.md> --workshop <name> [--doc-type TYPE] --db labsmith.db`. Default doc type is `reference`; optional types include `admin`, `cli`, `datasheet`, `release-notes`.
 - `query.py` — CLI: `python3 query.py stats --workshop <name>` for chunk counts. `python3 query.py list --workshop <name>` for titles.
 - `USER-GUIDE.md` — understand the full workflow and messaging.
 

@@ -325,6 +325,7 @@ labsmith_doc_type_from_key() {
         c|C) echo "cli" ;;
         d|D) echo "datasheet" ;;
         r|R) echo "release-notes" ;;
+        '') echo "reference" ;;
         *) echo "" ;;
     esac
 }
@@ -546,13 +547,13 @@ labsmith_step_drop_files() {
         echo ""
 
         while true; do
-            read -r -p "  When your files are in place, press Enter (r refresh, b workshop, q quit)... " action
+            read -r -p "  When your files are in place, press Enter (r refresh, w workshop, q quit)... " action
             action=$(labsmith_str_lower "$(echo "$action" | tr -d '[:space:]')")
             if [ "$action" = "r" ]; then
                 labsmith_print_pdf_list "$WATCH_DIR" || true
                 continue
             fi
-            if [ "$action" = "b" ]; then
+            if [ "$action" = "w" ]; then
                 labsmith_step_workshop
                 break
             fi
@@ -565,7 +566,7 @@ labsmith_step_drop_files() {
                 break
             fi
             echo -e "  ${YELLOW}${TP_WARN}${NC} No PDFs found. Add files to the folder above, then press Enter,"
-            echo "           or ${BOLD}b${NC} to go back to workshop selection, ${BOLD}q${NC} to quit."
+            echo "           or ${BOLD}w${NC} to go back to workshop selection, ${BOLD}q${NC} to quit."
         done
     done
     labsmith_pause
@@ -612,40 +613,55 @@ labsmith_step_convert() {
     echo ""
     echo -e "${BOLD}${WHITE}  ═══ Document Types ═══${NC}"
     echo ""
-    echo "  What type of document is each file?"
+    echo "  Default doc type is ${BOLD}reference${NC} (general material — same chunking as admin guides)."
+    echo "  You can skip classification and use reference for every file."
     echo ""
-    echo "    [a] Admin guide    [c] CLI reference"
-    echo "    [d] Datasheet      [r] Release notes"
-    echo ""
+    read -r -p "  Classify each file (a/c/d/r)? [y/N] " cls_all
+    cls_all=$(labsmith_str_lower "$(echo "$cls_all" | tr -d '[:space:]')")
 
     local j=0
-    while [ "$j" -lt "$nb" ]; do
-        local b tkey dtype
-        b="${BASENAMES[$j]}"
-        echo -n "  $b  "
-        read -r -p "type (a/c/d/r): " tkey
-        tkey=$(labsmith_str_lower "$(echo "$tkey" | tr -d '[:space:]')")
-        dtype=$(labsmith_doc_type_from_key "$tkey")
-        while [ -z "$dtype" ]; do
-            read -r -p "  Enter a, c, d, or r: " tkey
+    if [ "$cls_all" = "y" ] || [ "$cls_all" = "yes" ]; then
+        echo ""
+        echo "  What type of document is each file?"
+        echo ""
+        echo "    [a] Admin guide    [c] CLI reference"
+        echo "    [d] Datasheet      [r] Release notes"
+        echo "    [Enter]            reference"
+        echo ""
+        while [ "$j" -lt "$nb" ]; do
+            local b tkey dtype
+            b="${BASENAMES[$j]}"
+            echo -n "  $b  "
+            read -r -p "type (a/c/d/r or Enter=reference): " tkey
             tkey=$(labsmith_str_lower "$(echo "$tkey" | tr -d '[:space:]')")
             dtype=$(labsmith_doc_type_from_key "$tkey")
-        done
-        DOCTYPES[$j]="$dtype"
-        if [ "$nb" -gt 1 ] && [ "$j" -eq 0 ]; then
-            read -r -p "  Apply this type to all remaining files? (y/n) " ap
-            ap=$(labsmith_str_lower "$(echo "$ap" | tr -d '[:space:]')")
-            if [ "$ap" = "y" ] || [ "$ap" = "yes" ]; then
-                local k=$((j + 1))
-                while [ "$k" -lt "$nb" ]; do
-                    DOCTYPES[$k]="$dtype"
-                    k=$((k + 1))
-                done
-                break
+            while [ -z "$dtype" ]; do
+                read -r -p "  Enter a, c, d, r, or Enter for reference: " tkey
+                tkey=$(labsmith_str_lower "$(echo "$tkey" | tr -d '[:space:]')")
+                dtype=$(labsmith_doc_type_from_key "$tkey")
+            done
+            DOCTYPES[$j]="$dtype"
+            if [ "$nb" -gt 1 ] && [ "$j" -eq 0 ]; then
+                read -r -p "  Apply this type to all remaining files? (y/n) " ap
+                ap=$(labsmith_str_lower "$(echo "$ap" | tr -d '[:space:]')")
+                if [ "$ap" = "y" ] || [ "$ap" = "yes" ]; then
+                    local k=$((j + 1))
+                    while [ "$k" -lt "$nb" ]; do
+                        DOCTYPES[$k]="$dtype"
+                        k=$((k + 1))
+                    done
+                    break
+                fi
             fi
-        fi
-        j=$((j + 1))
-    done
+            j=$((j + 1))
+        done
+    else
+        while [ "$j" -lt "$nb" ]; do
+            DOCTYPES[$j]="reference"
+            j=$((j + 1))
+        done
+        echo -e "  ${GREEN}${TP_PASS}${NC} Using doc type ${BOLD}reference${NC} for all $nb file(s)."
+    fi
 
     echo ""
     echo -e "  ${BOLD}Ready to process $nb file(s) for workshop \"${SELECTED_WORKSHOP}\"${NC}"
@@ -694,7 +710,11 @@ labsmith_step_convert() {
             echo ""
             echo -e "  ${CYAN}🔄 Chunking into SQLite...${NC}"
             local cout
-            cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --doc-type "$dtype" --db "$DB_PATH" 2>&1)
+            if [ "$dtype" = "reference" ]; then
+                cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --db "$DB_PATH" 2>&1)
+            else
+                cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --doc-type "$dtype" --db "$DB_PATH" 2>&1)
+            fi
             echo "$cout"
             local inserted
             inserted=$(echo "$cout" | sed -n 's/^Chunks inserted: //p' | head -1)

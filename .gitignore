@@ -8,3 +8,5 @@ marker/to-process/*
 __pycache__/
 .DS_Store
 venv/
+
+.cursor-prompts/

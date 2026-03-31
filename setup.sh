@@ -6,8 +6,6 @@
 #   bash setup.sh                    # install to default location
 #   bash setup.sh /path/to/labsmith  # install to custom location
 
-set -e
-
 LABSMITH_DIR="${1:-$(cd "$(dirname "$0")" && pwd)}"
 PASS="✅"
 FAIL="❌"
@@ -23,8 +21,8 @@ echo ""
 
 # ── Check Python 3.10+ ──
 echo "Checking Python..."
-if command -v python3 &>/dev/null; then
-    PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null) || PY_VERSION=""
+if [ -n "$PY_VERSION" ]; then
     PY_MAJOR=$(echo "$PY_VERSION" | cut -d. -f1)
     PY_MINOR=$(echo "$PY_VERSION" | cut -d. -f2)
     if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 10 ]; then
@@ -40,8 +38,9 @@ fi
 
 # ── Check Git ──
 echo "Checking git..."
-if command -v git &>/dev/null; then
-    echo "  $PASS git $(git --version | awk '{print $3}')"
+GIT_VERSION=$(git --version 2>/dev/null | awk '{print $3}') || GIT_VERSION=""
+if [ -n "$GIT_VERSION" ]; then
+    echo "  $PASS git $GIT_VERSION"
 else
     echo "  $FAIL git not found"
     needs_git=true
@@ -53,7 +52,7 @@ if $needs_python || $needs_git; then
 
     # Check for Homebrew (macOS)
     if [[ "$(uname)" == "Darwin" ]]; then
-        if ! command -v brew &>/dev/null; then
+        if ! brew --version &>/dev/null; then
             echo "Missing prerequisites require Homebrew to install automatically."
             echo ""
             read -p "Install Homebrew? (y/n) " -n 1 -r
@@ -89,17 +88,18 @@ if $needs_python || $needs_git; then
 
             # Verify after install
             if $needs_python; then
-                if command -v python3 &>/dev/null; then
-                    PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-                    echo "  $PASS Python $PY_VERSION installed"
+                PY_CHECK=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null) || PY_CHECK=""
+                if [ -n "$PY_CHECK" ]; then
+                    echo "  $PASS Python $PY_CHECK installed"
                 else
                     echo "  $FAIL Python install failed. Try: brew install python@3.12"
                     exit 1
                 fi
             fi
             if $needs_git; then
-                if command -v git &>/dev/null; then
-                    echo "  $PASS git $(git --version | awk '{print $3}') installed"
+                GIT_CHECK=$(git --version 2>/dev/null | awk '{print $3}') || GIT_CHECK=""
+                if [ -n "$GIT_CHECK" ]; then
+                    echo "  $PASS git $GIT_CHECK installed"
                 else
                     echo "  $FAIL git install failed. Try: brew install git"
                     exit 1

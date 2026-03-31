@@ -5,6 +5,7 @@
 # Usage:
 #   bash setup.sh                    # install to default location
 #   bash setup.sh /path/to/labsmith  # install to custom location
+#   LABSMITH_SETUP_NO_WIZARD=1 bash setup.sh   # skip post-setup interactive steps
 #
 # No `set -e` — every failure path is handled explicitly. Detection uses real invocations
 # (e.g. python3 -c ..., git --version) so PATH stubs that replace binaries are detected
@@ -321,7 +322,8 @@ fi
 # ── Directory structure ──
 echo "Checking directories..."
 mkdir -p "$MARKER_DIR/to-process" "$MARKER_DIR/output" "$MARKER_DIR/processed"
-echo "  $PASS marker/to-process/, marker/output/, marker/processed/"
+TO_PROC_ABS=$(cd "$MARKER_DIR/to-process" && pwd)
+echo "  $PASS Marker dirs ready (inbox: $TO_PROC_ABS)"
 
 # ── Verify Marker runs ──
 echo ""
@@ -351,18 +353,36 @@ else
     echo "     Run manually: bash test-pipeline.sh"
 fi
 
-# ── Done ──
+# ── Done — hand off to labsmith.sh (6-step flow in CURSOR-INTERACTIVE-SCRIPT.md) ──
+LS_ROOT_DISP=$(labsmith_display_path "$LABSMITH_DIR")
+
 echo ""
 echo "═══════════════════════════════════════"
 echo "  $PASS Setup complete"
 echo "═══════════════════════════════════════"
 echo ""
-echo "You're ready to go. Next steps:"
+echo "Prerequisites and checks are done. The guided PDF → workshop flow is in labsmith.sh"
+echo "(6 steps: welcome, prerequisites, workshop, add PDFs, convert + chunk, Cowork)."
 echo ""
-echo "  1. Drop a PDF in marker/to-process/"
-echo "  2. Run:  bash marker/process-now.sh"
-echo "  3. Run:  python3 chunker.py marker/output/<filename>.md \\"
-echo "             --workshop <name> --doc-type admin"
-echo "  4. Open Cowork, mount this folder, and say:"
-echo "     \"Build a module on <topic> for the <name> workshop\""
+echo "  PDF inbox (full path — you’ll see this again in step 4 of labsmith.sh):"
+echo "    $TO_PROC_ABS"
 echo ""
+echo "  Start the interactive script from the repo root:"
+echo "    cd \"$LABSMITH_DIR\" && bash labsmith.sh"
+echo ""
+echo "  When you reach the end of that script, mount this folder in Cowork:"
+echo "    $LS_ROOT_DISP"
+echo ""
+
+if [ -t 0 ] && [ "${LABSMITH_SETUP_NO_WIZARD:-}" != "1" ]; then
+    read -r -p "Launch labsmith.sh now? [Y/n] " _run_ls
+    _run_ls=${_run_ls:-y}
+    if [[ "$_run_ls" =~ ^[Yy] ]]; then
+        echo ""
+        ( cd "$LABSMITH_DIR" && bash labsmith.sh ) || true
+        echo ""
+    fi
+else
+    echo "(Non-interactive: run labsmith.sh in a terminal when ready.)"
+    echo ""
+fi

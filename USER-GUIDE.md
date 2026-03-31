@@ -130,19 +130,47 @@ bash test-pipeline.sh
 
 ## Best practices
 
-**Start with the admin guide.** It has the broadest coverage and gives you the most topics to build from. Add CLI references and datasheets later for richer command tables and hardware-specific modules.
+### Choosing documents
+
+**More docs = better modules.** Every document you convert adds to the reference pool that Claude draws from. Conversion happens locally on your machine — it doesn't cost tokens or hit any API. Load as much as you have.
+
+**Prioritize admin guides.** They have the broadest coverage and give you the most topics to build from. A single admin guide can support 10-20 modules.
+
+**Layer in CLI references.** These give Claude the exact command syntax for command reference tables and lab exercises. Without a CLI reference, Claude will still write commands but may mark them with VERIFY comments.
+
+**Datasheets are useful for hardware-specific modules.** If your workshop involves specific appliance models (FortiGate 90G, FortiSwitch 248E), loading the datasheets lets Claude reference real specs like port counts, throughput ratings, and supported features.
+
+**Release notes help with version-specific content.** If you're training on a specific firmware version, the release notes tell Claude what's new, what changed, and what caveats to mention.
+
+**Don't worry about overlap.** If the admin guide and CLI reference both cover the same topic, that's fine. Claude picks the best chunks for the job. Redundancy in your reference material leads to better-grounded modules.
+
+**Avoid marketing PDFs and solution briefs.** These are light on technical detail and heavy on positioning language. They won't help Claude write lab exercises.
+
+### Organizing workshops
 
 **One workshop per engagement.** Create a named workshop for each customer or training event (e.g., `cisco-to-fortinet`, `acme-corp-onboarding`). All docs and modules stay organized under that workshop name.
 
-**Let Claude search, don't dump.** The whole point is token efficiency. Claude queries SQLite for just the chunks it needs instead of reading entire documents. Don't paste raw PDF content into the chat — that defeats the purpose.
+**Reuse docs across workshops.** The same admin guide can be loaded into multiple workshops. Convert once, chunk into each workshop that needs it.
 
-**Review the output.** Modules are grounded in real docs, but always check CLI commands against your lab environment. Look for `<!-- VERIFY -->` comments — those flag anything Claude wasn't 100% sure about from the reference material.
+**Name workshops descriptively.** Use lowercase and hyphens: `cisco-to-fortinet`, `financial-services-onboarding`, `fortigate-ha-deep-dive`. You'll thank yourself later when you have a dozen.
+
+### Building modules
+
+**Let Claude search, don't dump.** The whole point is token efficiency. Claude queries SQLite for just the chunks it needs instead of reading entire documents. Don't paste raw PDF content into the chat — that defeats the purpose.
 
 **Build modules in order.** Start with foundational topics (initial setup, basic connectivity) before advanced ones (HA, SD-WAN). Modules can reference prerequisites, and it helps learners progress logically.
 
+**Ask Claude what's available.** Before deciding what modules to build, ask: "What topics can I build from these docs?" Claude will search the chunks and suggest what's well-covered vs. thin.
+
+**Review the output.** Modules are grounded in real docs, but always check CLI commands against your lab environment. Look for `<!-- VERIFY -->` comments — those flag anything Claude wasn't 100% sure about from the reference material.
+
 **Customize after generation.** The generated module is a solid first draft. Add your own war stories, adjust timing for your audience, swap in environment-specific IP addresses and hostnames. The structure is the hard part — personalizing it is quick.
 
+### General
+
 **Keep your database.** `labsmith.db` is your reference store. Converting a 4,600-page admin guide takes ~17 minutes. Don't delete the database unless you're starting fresh. You can always add more docs to an existing workshop.
+
+**Conversion is free.** It runs locally on your laptop — no API calls, no tokens, no rate limits. The only cost is time (~4-5 pages per second on a modern Mac). Convert everything you might need upfront.
 
 ---
 

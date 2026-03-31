@@ -84,19 +84,31 @@ labsmith_bytes_to_mb() {
     awk "BEGIN { printf \"%d\", ($b + 512) / 1024 / 1024 }"
 }
 
+labsmith_bytes_to_kb() {
+    local b="$1"
+    awk "BEGIN { printf \"%d\", ($b + 512) / 1024 }"
+}
+
 labsmith_print_pdf_list() {
     local dir="$1"
     local total_bytes=0
     local n=0
-    echo ""
-    echo -e "  ${BOLD}Found files:${NC}"
-    echo ""
     local tmp
     tmp=$(mktemp)
     find "$dir" -maxdepth 1 -type f \( -iname '*.pdf' \) 2>/dev/null | sort >"$tmp"
+    n=$(wc -l <"$tmp" | tr -d '[:space:]')
+    [ -z "$n" ] && n=0
+    echo ""
+    if [ "$n" -eq 0 ]; then
+        echo -e "    ${DIM}(no PDFs yet)${NC}"
+        echo ""
+        rm -f "$tmp"
+        return 1
+    fi
+    echo -e "  ${BOLD}Found $n file(s):${NC}"
+    echo ""
     while IFS= read -r f; do
         [ -n "$f" ] || continue
-        n=$((n + 1))
         local base sz b mb
         base=$(basename "$f")
         sz=$(labsmith_file_size_bytes "$f")
@@ -106,11 +118,6 @@ labsmith_print_pdf_list() {
         echo -e "    📄  ${WHITE}$base${NC}  (${mb} MB)"
     done <"$tmp"
     rm -f "$tmp"
-    if [ "$n" -eq 0 ]; then
-        echo -e "    ${DIM}(no PDFs yet)${NC}"
-        echo ""
-        return 1
-    fi
     local tmb
     tmb=$(labsmith_bytes_to_mb "$total_bytes")
     echo ""
@@ -357,8 +364,8 @@ labsmith_step_welcome() {
     echo ""
     echo -e "  ${DIM}Convert vendor PDFs into searchable reference material for workshop building.${NC}"
     echo ""
-    echo "  This script walks you through prerequisites, PDF conversion, and"
-    echo "  chunking your docs for module building in Cowork."
+    echo "  This script will walk you through checking prerequisites, processing your PDFs,"
+    echo "  and preparing your docs for module building in Cowork."
     echo ""
     labsmith_pause
 }
@@ -521,28 +528,45 @@ labsmith_step_workshop() {
 
 # ═══ Step 4 ═══
 labsmith_step_drop_files() {
-    local abs_in abs_show
+    local abs_in abs_show done_drop
     abs_in=$(cd "$WATCH_DIR" && pwd 2>/dev/null || echo "$WATCH_DIR")
     abs_show=$(labsmith_path_for_display "$abs_in")
-    clear
-    echo ""
-    echo -e "${BOLD}${WHITE}  ═══ Add Documents ═══${NC}"
-    echo ""
-    echo "  Drop your PDF files into this folder:"
-    echo ""
-    echo -e "    📂  ${CYAN}$abs_show${NC}"
-    echo ""
-    while true; do
-        read -r -p "  When your files are in place, press Enter (or r to refresh list)... " action
-        action=$(labsmith_str_lower "$(echo "$action" | tr -d '[:space:]')")
-        if [ "$action" = "r" ]; then
-            labsmith_print_pdf_list "$WATCH_DIR" || true
-            continue
+    done_drop=false
+    while [ "$done_drop" != "true" ]; do
+        clear
+        echo ""
+        echo -e "${BOLD}${WHITE}  ═══ Add Documents ═══${NC}"
+        echo ""
+        echo "  Drop your PDF files into this folder:"
+        echo ""
+        echo -e "    📂  ${CYAN}$abs_in${NC}"
+        if [ "$abs_in" != "$abs_show" ]; then
+            echo -e "  ${DIM}(in Cowork, this repo may appear under: $abs_show)${NC}"
         fi
-        if labsmith_print_pdf_list "$WATCH_DIR"; then
-            break
-        fi
-        echo -e "  ${YELLOW}${TP_WARN}${NC} No PDFs found. Add files to the folder above, then press Enter."
+        echo ""
+
+        while true; do
+            read -r -p "  When your files are in place, press Enter (r refresh, b workshop, q quit)... " action
+            action=$(labsmith_str_lower "$(echo "$action" | tr -d '[:space:]')")
+            if [ "$action" = "r" ]; then
+                labsmith_print_pdf_list "$WATCH_DIR" || true
+                continue
+            fi
+            if [ "$action" = "b" ]; then
+                labsmith_step_workshop
+                break
+            fi
+            if [ "$action" = "q" ]; then
+                echo "Goodbye."
+                exit 0
+            fi
+            if labsmith_print_pdf_list "$WATCH_DIR"; then
+                done_drop=true
+                break
+            fi
+            echo -e "  ${YELLOW}${TP_WARN}${NC} No PDFs found. Add files to the folder above, then press Enter,"
+            echo "           or ${BOLD}b${NC} to go back to workshop selection, ${BOLD}q${NC} to quit."
+        done
     done
     labsmith_pause
 }
@@ -588,7 +612,7 @@ labsmith_step_convert() {
     echo ""
     echo -e "${BOLD}${WHITE}  ═══ Document Types ═══${NC}"
     echo ""
-    echo "  What type is each file?"
+    echo "  What type of document is each file?"
     echo ""
     echo "    [a] Admin guide    [c] CLI reference"
     echo "    [d] Datasheet      [r] Release notes"
@@ -626,7 +650,7 @@ labsmith_step_convert() {
     echo ""
     echo -e "  ${BOLD}Ready to process $nb file(s) for workshop \"${SELECTED_WORKSHOP}\"${NC}"
     echo ""
-    read -r -p "  Press Enter to start, or q to quit: " go
+    read -r -p "  Press Enter to start, or q to quit... " go
     go=$(labsmith_str_lower "$(echo "$go" | tr -d '[:space:]')")
     if [ "$go" = "q" ]; then
         echo "Goodbye."
@@ -663,6 +687,11 @@ labsmith_step_convert() {
         fi
 
         if [ -f "$outmd" ]; then
+            local osz okb
+            osz=$(labsmith_file_size_bytes "$outmd")
+            okb=$(labsmith_bytes_to_kb "${osz:-0}")
+            echo -e "  ${GREEN}${TP_PASS}${NC} Converted: ${okb} KB"
+            echo ""
             echo -e "  ${CYAN}🔄 Chunking into SQLite...${NC}"
             local cout
             cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --doc-type "$dtype" --db "$DB_PATH" 2>&1)
@@ -699,23 +728,68 @@ labsmith_step_done() {
         return
     fi
 
-    local stats
-    stats=$(python3 "$LABSMITH_DIR/query.py" --db "$DB_PATH" stats --workshop "$SELECTED_WORKSHOP" 2>/dev/null) || stats=""
     echo -e "  ${BOLD}📊 Workshop:${NC} $SELECTED_WORKSHOP"
     echo ""
-    if [ -n "$stats" ]; then
-        echo "$stats" | sed 's/^/     /'
-    fi
+
+    export LABSMITH_STAT_DB="$DB_PATH"
+    export LABSMITH_STAT_WS="$SELECTED_WORKSHOP"
+    python3 << 'PY'
+import os
+import sqlite3
+import sys
+
+db = os.environ.get("LABSMITH_STAT_DB", "")
+ws = os.environ.get("LABSMITH_STAT_WS", "")
+if not db or not ws:
+    sys.exit(0)
+try:
+    conn = sqlite3.connect(db)
+    row = conn.execute(
+        "SELECT COUNT(*) AS c, COALESCE(SUM(line_count), 0) AS ln FROM chunks WHERE workshop = ?",
+        (ws,),
+    ).fetchone()
+    chunks, lines = int(row[0]), int(row[1])
+    doc_n = int(
+        conn.execute(
+            "SELECT COUNT(DISTINCT source_doc) FROM chunks WHERE workshop = ?",
+            (ws,),
+        ).fetchone()[0]
+    )
+    types = conn.execute(
+        "SELECT doc_type, COUNT(*) AS c FROM chunks WHERE workshop = ? "
+        "GROUP BY doc_type ORDER BY doc_type",
+        (ws,),
+    ).fetchall()
+    conn.close()
+except Exception:
+    print("     (Could not read stats.)")
+    sys.exit(0)
+
+print(f"     Documents:  {doc_n}")
+print(f"     Chunks:     {chunks}")
+print(f"     Total lines: {lines:,}")
+print("")
+print("     By type:")
+for dt, c in types:
+    pad = max(3, 22 - len(dt))
+    print(f"       {dt} {'.' * pad} {c} chunks")
+PY
+    unset LABSMITH_STAT_DB LABSMITH_STAT_WS
 
     echo ""
     echo -e "${BOLD}  ═══ What's Next ═══${NC}"
     echo ""
     echo "  1. Open Claude Desktop → start a Cowork session"
-    echo "  2. Mount your LabSmith folder:"
+    echo "  2. Mount your labsmith folder:"
     echo -e "     📂  ${CYAN}$(labsmith_path_for_display "$LABSMITH_DIR")${NC}"
-    echo "  3. Ask Claude to build a module, e.g.:"
+    echo "  3. Tell Claude what module to build:"
     echo ""
     echo "     \"Build a module on firewall policies for the $SELECTED_WORKSHOP workshop\""
+    echo ""
+    echo "  Other things you can ask:"
+    echo "     \"What topics can I build from these docs?\""
+    echo "     \"Build a module on VPN configuration\""
+    echo "     \"What's in the reference database?\""
     echo ""
     labsmith_pause
 }

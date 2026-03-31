@@ -15,6 +15,45 @@ from pathlib import Path
 
 ALLOWED_DOC_TYPES = frozenset({"admin", "cli", "datasheet", "release-notes"})
 
+# Headings that are really code fences misparsed as markdown (common in PDF→md).
+CLI_HEADING_VERBS = frozenset(
+    (
+        "diagnose",
+        "execute",
+        "get",
+        "set",
+        "config",
+        "edit",
+        "show",
+        "end",
+        "next",
+        "abort",
+        "select",
+        "unselect",
+        "alias",
+        "sudo",
+        "fnsysctl",
+        "tree",
+        # Common shell / util one-liners mis-exported as headings
+        "curl",
+        "wget",
+        "dig",
+        "arp",
+        "ping",
+        "openssl",
+        "ssh",
+        "scp",
+        "telnet",
+        "traceroute",
+        "nc",
+        "netcat",
+        # FortiOS shorthand / PDF typos seen in admin guide markdown
+        "dia",
+        "dianose",
+        "diagose",
+    )
+)
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS chunks (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,16 +168,48 @@ def split_by_chapters(lines, chapter_starts):
     return sections
 
 
+def _clean_section_title(raw: str) -> str:
+    t = raw.strip()
+    m = re.match(r"^\*\*(.+)\*\*\s*$", t, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    return re.sub(r"\*\*", "", t).strip()
+
+
+def heading_looks_like_cli_command(heading_raw: str) -> bool:
+    """True if this heading line is probably a CLI/code example, not a doc section title."""
+    text = _clean_section_title(heading_raw)
+    if not text:
+        return True
+    # Terraform / example snippet lines often appear as fake headings, e.g. `# dst = "1.2.3.4/32"`.
+    if re.match(r"^[a-z_][a-z0-9_]*\s*=", text, re.I):
+        return True
+    low = text.lower()
+    if "://" in text or "|" in text:
+        return True
+    if "grep" in low and "|" in text:
+        return True
+    first = text.split()[0].lower()
+    if first in CLI_HEADING_VERBS:
+        return True
+    return False
+
+
 def extract_sections(content: str, min_lines: int = 10):
-    """Split markdown on # / ## / ### headings for finer-grained chunks."""
+    """Split markdown on #–#### headings; merge lines that look like CLI into the current section."""
     sections = []
     current_heading = None
     current_lines = []
 
     for line in content.split("\n"):
-        heading_match = re.match(r"^(#{1,3})\s+(.+)$", line)
+        heading_match = re.match(r"^(#{1,4})\s+(.+)$", line)
 
         if heading_match:
+            raw_title = heading_match.group(2).strip()
+            if heading_looks_like_cli_command(raw_title):
+                current_lines.append(line)
+                continue
+
             if current_heading and len(current_lines) >= min_lines:
                 sections.append(
                     {
@@ -147,8 +218,14 @@ def extract_sections(content: str, min_lines: int = 10):
                     }
                 )
 
-            current_heading = heading_match.group(2).strip()
-            current_lines = [line]
+            title = _clean_section_title(raw_title)
+            # Keep preamble / merged CLI lines before the first real section heading.
+            if current_heading is None and current_lines:
+                current_heading = title
+                current_lines = current_lines + [line]
+            else:
+                current_heading = title
+                current_lines = [line]
         else:
             current_lines.append(line)
 
@@ -156,6 +233,13 @@ def extract_sections(content: str, min_lines: int = 10):
         sections.append(
             {
                 "heading": current_heading,
+                "content": "\n".join(current_lines),
+            }
+        )
+    elif not current_heading and current_lines and len(current_lines) >= min_lines:
+        sections.append(
+            {
+                "heading": "Document",
                 "content": "\n".join(current_lines),
             }
         )

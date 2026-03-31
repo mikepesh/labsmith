@@ -1,0 +1,7 @@
+labsmith.db
+marker/to-process/
+marker/processed/
+*.pyc
+__pycache__/
+.DS_Store
+venv/

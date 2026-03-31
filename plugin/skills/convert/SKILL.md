@@ -1,14 +1,24 @@
 ---
 name: convert
 description: >
-  Convert vendor PDFs into searchable reference chunks stored in SQLite.
-  Use when the user says "convert", "process these PDFs", "add docs",
-  "ingest these docs", or drops PDF files for workshop reference material.
+  Convert vendor PDFs into searchable reference chunks stored in SQLite for
+  workshop authoring. ALWAYS use this skill when the user mentions converting
+  docs, processing PDFs, adding reference material, ingesting documentation,
+  loading datasheets, importing admin guides, or wants to prepare any vendor
+  documentation for module generation — even if they don't say "convert"
+  explicitly. Also trigger when the user drops PDF files, asks about the
+  marker pipeline, or says things like "I have some new PDFs", "add these
+  docs to the workshop", "process my datasheets", or "get these ready for
+  module building". NOTE: The convert pipeline runs from Terminal, not inside
+  Cowork — SQLite writes require direct filesystem access. Guide the user
+  through Terminal commands.
 ---
 
 # LabSmith — Convert Docs
 
 This skill converts vendor documentation (PDFs) into markdown, chunks it by heading, and stores it in SQLite so the build-module skill can query only what it needs.
+
+> **Important:** The convert pipeline (Marker + chunker) must run from **Terminal** or **Cursor**, not from inside a Cowork session. SQLite cannot write to Cowork-mounted directories. Guide the user through the Terminal commands below.
 
 ## Cowork runtime (read-only plugin)
 

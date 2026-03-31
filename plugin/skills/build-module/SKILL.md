@@ -1,10 +1,17 @@
 ---
 name: build-module
 description: >
-  Generate a structured hands-on lab module grounded in reference material.
-  Use when the user says "build a module", "create a lab", "new module",
-  "write a module", "generate a module on [topic]", or wants to create
-  a training exercise from their converted docs.
+  Generate a structured hands-on lab module grounded in vendor reference
+  material stored in SQLite. ALWAYS use this skill when the user wants to
+  create a lab module, build a training exercise, write workshop content,
+  generate a hands-on lab, or produce any kind of structured training module
+  from their documentation. Trigger on phrases like "build a module",
+  "create a lab", "new module", "write a module", "generate a module on
+  [topic]", "write a lab about [topic]", "next module", "add a module for
+  [topic]", or any request to turn converted reference docs into a training
+  exercise. Also trigger when the user asks about module structure, wants to
+  see what topics they can build from, or says things like "what can I build
+  from these docs" or "what modules should this workshop have".
 ---
 
 # LabSmith — Build Module

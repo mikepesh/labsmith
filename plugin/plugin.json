@@ -1,17 +1,9 @@
 {
   "name": "labsmith",
-  "version": "2.0.0",
+  "version": "0.1.0",
   "description": "Build hands-on training workshops from vendor documentation. Convert PDFs to searchable reference chunks, then generate structured lab modules grounded in real product docs.",
-  "skills": [
-    {
-      "name": "convert",
-      "description": "Convert PDFs (datasheets, admin guides, release notes, CLI references) into searchable reference chunks stored in SQLite. Use when the user says 'convert', 'process these PDFs', 'add docs', 'convert my datasheets', 'ingest these docs', or drops PDF files and wants them turned into reference material for workshop authoring.",
-      "path": "skills/convert"
-    },
-    {
-      "name": "build-module",
-      "description": "Generate a structured hands-on lab module from reference material. Use when the user says 'build a module', 'create a lab', 'new module', 'write a module', 'generate a module on [topic]', or wants to turn their converted reference docs into a training exercise.",
-      "path": "skills/build-module"
-    }
-  ]
+  "author": {
+    "name": "Mike Pesh"
+  },
+  "keywords": ["workshop", "training", "lab", "documentation", "module", "presales", "hands-on"]
 }

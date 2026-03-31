@@ -58,7 +58,7 @@ If it can't be explained in the three steps above, it doesn't belong.
 
 ## Repo plan
 
-**This repo** lives under `~/Documents/CODING/labsmith/` (directory may be `labsmith-v2` until you rename — see `README.md`). The legacy tree at `~/Documents/Claude/Projects/LabSmith/` stays untouched as a reference where useful. Cowork can still read from the old repo; day-to-day Cursor work happens here.
+**This repo** is `~/Documents/CODING/labsmith/`. The earlier Streamlit codebase was moved to `~/Documents/CODING/labsmith-streamlit/`. The legacy tree at `~/Documents/Claude/Projects/LabSmith/` stays untouched as a reference where useful. Cowork can still read from the old repo; day-to-day Cursor work happens here.
 
 Copy over only:
 - `marker/` — PDF conversion tooling (process-now.sh + pymupdf4llm pipeline)

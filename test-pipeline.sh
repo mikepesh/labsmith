@@ -29,7 +29,7 @@ fail() { echo -e "  ${RED}FAIL${NC} — $1"; FAIL=$((FAIL + 1)); }
 skip() { echo -e "  ${YELLOW}SKIP${NC} — $1"; SKIP=$((SKIP + 1)); }
 
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║        LabSmith v2 — Pipeline Test Suite              ║"
+echo "║        LabSmith v2 — Pipeline Test Suite             ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
@@ -45,25 +45,34 @@ if [ -n "$PDF_PATH" ] && [ -f "$PDF_PATH" ]; then
     echo "── Phase A0: Marker conversion ──"
     echo "  Input: $PDF_PATH"
 
-    # Copy to marker input
-    cp "$PDF_PATH" marker/to-process/
+    # Copy to marker inbox if not already there (cp errors if source == dest)
+    PDF_BASENAME=$(basename "$PDF_PATH")
+    SRC_ABS="$(cd "$(dirname "$PDF_PATH")" && pwd)/$PDF_BASENAME"
+    DEST_ABS="$(cd marker/to-process && pwd)/$PDF_BASENAME"
+    if [ "$SRC_ABS" != "$DEST_ABS" ]; then
+        cp "$PDF_PATH" marker/to-process/
+    else
+        echo "  (PDF already in marker/to-process/, skipping copy)"
+    fi
 
-    # Run Marker
-    if bash marker/process-now.sh 2>&1 | tail -5; then
-        BASENAME=$(basename "$PDF_PATH" .pdf)
-        if [ -f "marker/output/${BASENAME}.md" ]; then
-            LINES=$(wc -l < "marker/output/${BASENAME}.md")
-            if [ "$LINES" -gt 10 ]; then
-                pass "A1: Marker produced ${LINES} lines"
-                ADMIN_MD="marker/output/${BASENAME}.md"
-            else
-                fail "A1: Marker output only ${LINES} lines (expected >10)"
-            fi
+    # Run Marker on this PDF only (to-process/ may hold other PDFs)
+    PDF_BASENAME_FOR_MARKER=$(basename "$PDF_PATH")
+    BASENAME=$(basename "$PDF_PATH" .pdf)
+    bash marker/process-now.sh "$PDF_BASENAME_FOR_MARKER" 2>&1 | tail -25
+    marker_exit=${PIPESTATUS[0]}
+
+    if [ -f "marker/output/${BASENAME}.md" ]; then
+        LINES=$(wc -l < "marker/output/${BASENAME}.md")
+        if [ "$LINES" -gt 10 ] && [ "$marker_exit" -eq 0 ]; then
+            pass "A1: Marker produced ${LINES} lines"
+            ADMIN_MD="marker/output/${BASENAME}.md"
+        elif [ "$LINES" -le 10 ]; then
+            fail "A1: Marker output only ${LINES} lines (expected >10)"
         else
-            fail "A1: Marker output file not found"
+            fail "A1: Marker exited ${marker_exit} — check ${BASENAME}.md (${LINES} lines)"
         fi
     else
-        fail "A1: Marker conversion failed"
+        fail "A1: Marker output file not found (marker exit ${marker_exit})"
     fi
     echo ""
 else

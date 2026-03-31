@@ -64,7 +64,7 @@ filepath = "$file"
 outpath = Path("$OUTPUT_DIR") / "$name.md"
 
 print("   Loading PDF...")
-md = pymupdf4llm.to_markdown(filepath, header=False, footer=False)
+md = pymupdf4llm.to_markdown(filepath)
 
 # Clean up mangled TOC entries (rows of pipes and dashes)
 print("   Cleaning up TOC artifacts...")

@@ -1,8 +1,19 @@
-# LabSmith v2
+# LabSmith
 
 Foundation for a Cowork plugin that helps presales engineers build hands-on workshops from vendor documentation: PDFs through Marker to markdown, chunked into SQLite, queried when authoring lab modules.
 
 See `PROJECT.md` for scope, architecture, and roadmap. Phase 1 delivers `chunker.py`, `query.py`, and the `marker/` + `workshops/` layout.
+
+## Directory name
+
+The **canonical** repo folder is `~/Documents/CODING/labsmith/`. If this checkout is still named `labsmith-v2`, rename it after freeing that name: you may already have a different project at `CODING/labsmith` (for example the Streamlit app). Rename or archive that folder first, then:
+
+```bash
+cd /Users/baymax/Documents/CODING
+mv labsmith-v2 labsmith
+```
+
+Reopen the project in Cursor from `labsmith/`. Git history stays intact (`.git` moves with the directory).
 
 ## Quick use
 

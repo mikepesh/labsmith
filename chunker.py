@@ -3,7 +3,7 @@
 Chunk Marker markdown output and store sections in SQLite.
 
 Merges heading-based splitting (admin-style TOC chapters + h1/h2 fallback) and
-CLI reference config-block splitting from the LabSmith v1 scripts.
+CLI reference config-block splitting from the legacy LabSmith marker scripts.
 """
 
 import argparse

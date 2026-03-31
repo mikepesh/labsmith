@@ -1,4 +1,4 @@
-# LabSmith v2 — Project Definition
+# LabSmith — Project definition
 
 ## What it is
 
@@ -58,7 +58,7 @@ If it can't be explained in the three steps above, it doesn't belong.
 
 ## Repo plan
 
-**New repo in a separate directory** (e.g. `~/Documents/labsmith-v2/`). The old repo (`~/Documents/Claude/Projects/LabSmith/`) stays untouched as a reference. Cowork reads from the old repo; Cursor builds in the new one. No risk of stepping on each other.
+**This repo** lives under `~/Documents/CODING/labsmith/` (directory may be `labsmith-v2` until you rename — see `README.md`). The legacy tree at `~/Documents/Claude/Projects/LabSmith/` stays untouched as a reference where useful. Cowork can still read from the old repo; day-to-day Cursor work happens here.
 
 Copy over only:
 - `marker/` — PDF conversion tooling (process-now.sh + pymupdf4llm pipeline)
@@ -120,7 +120,7 @@ Delivery (compiling modules into a polished docx/PDF) is handled ad hoc by Claud
 | Shared DB, not per-workshop | 2026-03-30 | Reference material overlaps across workshops. One DB, workshop column. |
 | Two skills MVP (convert + build-module) | 2026-03-30 | Delivery is ad hoc. Keep the plugin dead simple. |
 | Fresh repo | 2026-03-30 | Too much dead code. Copy over only Marker, modules (as examples), and plugin. |
-| Separate directories | 2026-03-30 | Old repo stays as reference. New repo in ~/Documents/CODING/labsmith-v2/. Cowork reads old, Cursor builds new. |
+| Separate directories | 2026-03-30 | Old repo stays as reference. Cursor project canonical path: ~/Documents/CODING/labsmith/. |
 
 ## SQLite schema
 
@@ -144,7 +144,7 @@ CREATE INDEX idx_section_title ON chunks(section_title);
 
 These live in the OLD repo at `~/Documents/Claude/Projects/LabSmith/marker-scripts/`:
 
-| Script | What it does | Reuse in v2 |
+| Script | What it does | Reuse in this repo |
 |--------|-------------|-------------|
 | `clean-and-split.py` | Cleans pymupdf4llm artifacts (TOC tables, blank lines), finds chapter headings in TOC, splits admin guides by chapter | Core logic becomes chunker.py — redirect output to SQLite instead of .md files |
 | `extract-references.py` | Splits CLI references by config blocks (firewall, system, vpn), diagnose/execute command groups | Same — merge into chunker.py with doc_type-aware splitting |

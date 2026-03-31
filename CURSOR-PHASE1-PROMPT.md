@@ -1,8 +1,8 @@
-# LabSmith v2 — Phase 1 Cursor Prompt
+# LabSmith — Phase 1 Cursor prompt (historical)
 
 ## Context
 
-You are building the foundation for LabSmith v2 — a Cowork plugin that helps presales engineers build hands-on training workshops from vendor documentation. Read `PROJECT.md` in this directory for the full project definition, decisions, and architecture.
+You are building the foundation for LabSmith — a Cowork plugin that helps presales engineers build hands-on training workshops from vendor documentation. Read `PROJECT.md` in this directory for the full project definition, decisions, and architecture.
 
 The core flow is: PDFs → Marker (converts to markdown) → chunker (splits by heading, stores in SQLite) → Claude queries SQLite for relevant chunks → writes lab modules.
 
@@ -10,10 +10,10 @@ The core flow is: PDFs → Marker (converts to markdown) → chunker (splits by 
 
 ## Step 1 — Create the fresh repo
 
-Create a new repo at `~/Documents/CODING/labsmith-v2/` with this structure:
+Create a new repo at `~/Documents/CODING/labsmith/` with this structure:
 
 ```
-labsmith-v2/
+labsmith/
   marker/
     process-now.sh       ← copy from ~/Documents/Claude/Projects/LabSmith/marker/process-now.sh
     to-process/          ← empty dir (gitkeep)
@@ -37,7 +37,7 @@ labsmith-v2/
 
 `.gitignore` should include: `labsmith.db`, `marker/to-process/`, `marker/processed/`, `*.pyc`, `__pycache__/`, `.DS_Store`, `venv/`
 
-Init git repo. First commit: "Initial repo structure for LabSmith v2"
+Init git repo. First commit: "Initial repo structure for LabSmith"
 
 ## Step 2 — Build chunker.py
 

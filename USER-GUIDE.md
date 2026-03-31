@@ -162,6 +162,14 @@ labsmith/
 
 ---
 
+## A note on how this was built
+
+LabSmith was built by a presales SE, not a software engineer. The code — Python scripts, shell pipelines, Cowork plugin structure, this guide — was written with significant help from Claude. I brought the problem (we spend too long building workshops from scratch), the domain knowledge (what makes a good lab module), and the design decisions. Claude helped turn that into working code.
+
+I mention this for two reasons. First, transparency — you should know that AI wrote most of the code you're running. Second, encouragement — if you see ways to improve this, you don't need to be a developer to do it. Open a Cowork session, describe what you want to change, and iterate. That's how this whole project was built.
+
+---
+
 ## Troubleshooting
 
 **"pymupdf4llm not found"** — Re-run `bash setup.sh` — it installs this automatically. Or manually: `cd marker && python3 -m venv venv && venv/bin/pip install pymupdf4llm`.

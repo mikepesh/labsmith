@@ -12,7 +12,8 @@ LABSMITH_DIR="${1:-$(cd "$(dirname "$0")" && pwd)}"
 PASS="✅"
 FAIL="❌"
 WARN="⚠️"
-errors=0
+needs_python=false
+needs_git=false
 
 echo ""
 echo "═══════════════════════════════════════"
@@ -20,7 +21,7 @@ echo "  LabSmith Setup"
 echo "═══════════════════════════════════════"
 echo ""
 
-# ── Python 3.10+ ──
+# ── Check Python 3.10+ ──
 echo "Checking Python..."
 if command -v python3 &>/dev/null; then
     PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
@@ -30,40 +31,122 @@ if command -v python3 &>/dev/null; then
         echo "  $PASS Python $PY_VERSION"
     else
         echo "  $FAIL Python $PY_VERSION found — need 3.10+"
-        echo "     Install: https://www.python.org/downloads/"
-        errors=$((errors + 1))
+        needs_python=true
     fi
 else
     echo "  $FAIL Python 3 not found"
-    echo "     Install: https://www.python.org/downloads/"
-    errors=$((errors + 1))
+    needs_python=true
 fi
 
-# ── Git ──
+# ── Check Git ──
 echo "Checking git..."
 if command -v git &>/dev/null; then
     echo "  $PASS git $(git --version | awk '{print $3}')"
 else
     echo "  $FAIL git not found"
-    echo "     Install: https://git-scm.com/downloads"
-    errors=$((errors + 1))
+    needs_git=true
 fi
 
-# ── Stop here if prerequisites are missing ──
-if [ "$errors" -gt 0 ]; then
+# ── Install missing prerequisites ──
+if $needs_python || $needs_git; then
     echo ""
-    echo "$FAIL Fix the issues above and re-run this script."
-    exit 1
+
+    # Check for Homebrew (macOS)
+    if [[ "$(uname)" == "Darwin" ]]; then
+        if ! command -v brew &>/dev/null; then
+            echo "Missing prerequisites require Homebrew to install automatically."
+            echo ""
+            read -p "Install Homebrew? (y/n) " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                # Add brew to PATH for this session
+                if [ -f /opt/homebrew/bin/brew ]; then
+                    eval "$(/opt/homebrew/bin/brew shellenv)"
+                elif [ -f /usr/local/bin/brew ]; then
+                    eval "$(/usr/local/bin/brew shellenv)"
+                fi
+            else
+                echo ""
+                echo "$FAIL Install Homebrew first: https://brew.sh"
+                echo "  Then re-run: bash setup.sh"
+                exit 1
+            fi
+        fi
+
+        # Build install list
+        to_install=""
+        $needs_python && to_install="python@3.12"
+        $needs_git && to_install="$to_install git"
+        to_install=$(echo "$to_install" | xargs)  # trim whitespace
+
+        echo ""
+        read -p "Install $to_install via Homebrew? (y/n) " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            brew install $to_install
+            echo ""
+
+            # Verify after install
+            if $needs_python; then
+                if command -v python3 &>/dev/null; then
+                    PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+                    echo "  $PASS Python $PY_VERSION installed"
+                else
+                    echo "  $FAIL Python install failed. Try: brew install python@3.12"
+                    exit 1
+                fi
+            fi
+            if $needs_git; then
+                if command -v git &>/dev/null; then
+                    echo "  $PASS git $(git --version | awk '{print $3}') installed"
+                else
+                    echo "  $FAIL git install failed. Try: brew install git"
+                    exit 1
+                fi
+            fi
+        else
+            echo ""
+            echo "$FAIL Install these manually and re-run: bash setup.sh"
+            $needs_python && echo "  brew install python@3.12"
+            $needs_git && echo "  brew install git"
+            exit 1
+        fi
+
+    # Linux
+    elif [[ "$(uname)" == "Linux" ]]; then
+        to_install=""
+        $needs_python && to_install="python3"
+        $needs_git && to_install="$to_install git"
+        to_install=$(echo "$to_install" | xargs)
+
+        echo ""
+        echo "Missing: $to_install"
+        if command -v apt-get &>/dev/null; then
+            read -p "Install via apt? (y/n) " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo apt-get update -qq && sudo apt-get install -y $to_install python3-venv
+            else
+                echo "$FAIL Install manually and re-run: bash setup.sh"
+                exit 1
+            fi
+        else
+            echo "Install $to_install with your package manager, then re-run: bash setup.sh"
+            exit 1
+        fi
+    fi
 fi
 
 # ── Repo check ──
+echo ""
 echo "Checking LabSmith repo..."
 if [ -f "$LABSMITH_DIR/chunker.py" ] && [ -f "$LABSMITH_DIR/query.py" ] && [ -f "$LABSMITH_DIR/marker/process-now.sh" ]; then
     echo "  $PASS Repo found at $LABSMITH_DIR"
 else
     echo "  $FAIL LabSmith repo not found at $LABSMITH_DIR"
     echo "     Clone it first:"
-    echo "     git clone git@github.com:mikepesh/labsmith.git $LABSMITH_DIR"
+    echo "     git clone https://github.com/mikepesh/labsmith.git $LABSMITH_DIR"
     exit 1
 fi
 

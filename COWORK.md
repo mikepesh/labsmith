@@ -20,7 +20,7 @@ v0.1.0-beta (committed, not tagged)
 - SQLite writes blocked on Cowork mounts — convert skill must run from Terminal (documented, by design)
 
 ## Repo
-`~/Documents/CODING/labsmith/` → origin/main
+`~/Documents/labsmith/` → origin/main
 
 ## Quick reference
 - Convert docs: `bash marker/process-now.sh` then `python3 chunker.py ...`

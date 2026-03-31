@@ -120,7 +120,7 @@ Delivery (compiling modules into a polished docx/PDF) is handled ad hoc by Claud
 | Shared DB, not per-workshop | 2026-03-30 | Reference material overlaps across workshops. One DB, workshop column. |
 | Two skills MVP (convert + build-module) | 2026-03-30 | Delivery is ad hoc. Keep the plugin dead simple. |
 | Fresh repo | 2026-03-30 | Too much dead code. Copy over only Marker, modules (as examples), and plugin. |
-| Separate directories | 2026-03-30 | Old repo stays as reference. New repo in ~/Documents/CODING/labsmith-v2/. Cowork reads old, Cursor builds new. |
+| Separate directories | 2026-03-30 | Old repo stays as reference. New repo in ~/Documents/labsmith-v2/. Cowork reads old, Cursor builds new. |
 
 ## SQLite schema
 

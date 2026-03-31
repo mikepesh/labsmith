@@ -10,7 +10,7 @@ The core flow is: PDFs → Marker (converts to markdown) → chunker (splits by 
 
 ## Step 1 — Repo setup (already done)
 
-The repo at `~/Documents/CODING/labsmith/` has already been seeded with the initial structure and first commit. You should see:
+The repo at `~/Documents/labsmith/` has already been seeded with the initial structure and first commit. You should see:
 
 ```
 labsmith/

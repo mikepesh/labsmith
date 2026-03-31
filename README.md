@@ -7,8 +7,8 @@ A Cowork plugin that builds hands-on training modules from vendor PDFs. Convert 
 ## Quick start
 
 ```bash
-git clone https://github.com/mikepesh/labsmith.git ~/Documents/CODING/labsmith
-cd ~/Documents/CODING/labsmith
+git clone https://github.com/mikepesh/labsmith.git ~/Documents/labsmith
+cd ~/Documents/labsmith
 bash setup.sh
 ```
 

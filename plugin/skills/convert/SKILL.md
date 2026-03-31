@@ -51,7 +51,7 @@ cd "$LABSMITH_ROOT" || exit 1
 pwd
 ```
 
-Do not assume a path like `~/Documents/CODING/labsmith` unless it appears in the mount listing.
+Do not assume a path like `~/Documents/labsmith` unless it appears in the mount listing.
 
 ## What happens
 

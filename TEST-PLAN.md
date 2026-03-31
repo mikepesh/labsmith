@@ -15,7 +15,7 @@ You need **two real PDFs** from your existing collection:
 
 If you don't have a short PDF handy, any Fortinet datasheet or release notes PDF works — just use the appropriate `--doc-type`.
 
-Place them in: `~/Documents/CODING/labsmith/marker/to-process/`
+Place them in: `~/Documents/labsmith/marker/to-process/`
 
 ---
 

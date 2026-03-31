@@ -31,8 +31,8 @@ No GitHub account? Just message me directly — Slack, email, whatever works.
 ### 1. Clone and run setup
 
 ```bash
-git clone https://github.com/mikepesh/labsmith.git ~/Documents/CODING/labsmith
-cd ~/Documents/CODING/labsmith
+git clone https://github.com/mikepesh/labsmith.git ~/Documents/labsmith
+cd ~/Documents/labsmith
 bash setup.sh
 ```
 
@@ -53,7 +53,7 @@ Everything happens in two phases, both from Terminal.
 Put your vendor PDFs in `marker/to-process/` and run the pipeline. Do this from Terminal (not Cowork) because the chunker writes to SQLite, which doesn't work on Cowork-mounted directories.
 
 ```bash
-cd ~/Documents/CODING/labsmith
+cd ~/Documents/labsmith
 
 # Step 1: Drop PDFs in
 cp ~/Downloads/FortiOS-Admin-Guide.pdf marker/to-process/
@@ -107,7 +107,7 @@ Each module follows a consistent format:
 
 ## Useful commands
 
-Run these from `~/Documents/CODING/labsmith`:
+Run these from `~/Documents/labsmith`:
 
 ```bash
 # See what's in the database

@@ -16,8 +16,8 @@ Three steps: **Convert → Build → Deliver.**
 ## 1. Clone the repo
 
 ```bash
-git clone git@github.com:mikepesh/labsmith.git ~/Documents/CODING/labsmith
-cd ~/Documents/CODING/labsmith
+git clone git@github.com:mikepesh/labsmith.git ~/Documents/labsmith
+cd ~/Documents/labsmith
 ```
 
 ## 2. Set up Marker (PDF converter)
@@ -182,7 +182,7 @@ labsmith/
 To package the plugin for distribution:
 
 ```bash
-cd ~/Documents/CODING/labsmith
+cd ~/Documents/labsmith
 # TODO: packaging command TBD — depends on Cowork plugin format
 ```
 

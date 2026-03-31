@@ -31,7 +31,7 @@ No GitHub account? Just message me directly — Slack, email, whatever works.
 ### 1. Clone and run setup
 
 ```bash
-git clone git@github.com:mikepesh/labsmith.git ~/Documents/CODING/labsmith
+git clone https://github.com/mikepesh/labsmith.git ~/Documents/CODING/labsmith
 cd ~/Documents/CODING/labsmith
 bash setup.sh
 ```

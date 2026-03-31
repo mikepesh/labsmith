@@ -57,17 +57,49 @@ process_file() {
 
     "$PYTHON" << PYEOF
 import pymupdf4llm
+import pymupdf
 from pathlib import Path
 import re
+import sys
+import time
 
 filepath = "$file"
 outpath = Path("$OUTPUT_DIR") / "$name.md"
 
-print("   Loading PDF...")
-md = pymupdf4llm.to_markdown(filepath)
+# Get page count first for progress reporting
+doc = pymupdf.open(filepath)
+total_pages = len(doc)
+doc.close()
+
+print(f"   PDF has {total_pages} pages")
+print(f"   Converting...", flush=True)
+
+start_time = time.time()
+
+# Process in batches for progress reporting on large files
+BATCH_SIZE = 50
+md_parts = []
+
+for batch_start in range(0, total_pages, BATCH_SIZE):
+    batch_end = min(batch_start + BATCH_SIZE, total_pages)
+    pages = list(range(batch_start, batch_end))
+    batch_md = pymupdf4llm.to_markdown(filepath, pages=pages)
+    md_parts.append(batch_md)
+
+    elapsed = time.time() - start_time
+    pct = (batch_end / total_pages) * 100
+    pages_per_sec = batch_end / elapsed if elapsed > 0 else 0
+    remaining = ((total_pages - batch_end) / pages_per_sec) if pages_per_sec > 0 else 0
+
+    print(f"   [{pct:5.1f}%] {batch_end}/{total_pages} pages — {elapsed:.0f}s elapsed, ~{remaining:.0f}s remaining", flush=True)
+
+md = "\n\n".join(md_parts)
+
+elapsed_total = time.time() - start_time
+print(f"   Conversion done in {elapsed_total:.0f}s ({total_pages / elapsed_total:.1f} pages/sec)")
 
 # Clean up mangled TOC entries (rows of pipes and dashes)
-print("   Cleaning up TOC artifacts...")
+print("   Cleaning up TOC artifacts...", flush=True)
 lines = md.split('\n')
 clean_lines = []
 for line in lines:

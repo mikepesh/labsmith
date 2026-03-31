@@ -130,13 +130,13 @@ def split_by_chapters(lines, chapter_starts):
 
 
 def extract_sections(content: str, min_lines: int = 10):
-    """Split markdown by top-level # / ## headings."""
+    """Split markdown on # / ## / ### headings for finer-grained chunks."""
     sections = []
     current_heading = None
     current_lines = []
 
     for line in content.split("\n"):
-        heading_match = re.match(r"^(#{1,2})\s+(.+)$", line)
+        heading_match = re.match(r"^(#{1,3})\s+(.+)$", line)
 
         if heading_match:
             if current_heading and len(current_lines) >= min_lines:
@@ -251,14 +251,7 @@ def init_db(conn: sqlite3.Connection) -> None:
 
 
 def split_general(raw_content: str, cleaned: str):
-    """Admin-style chapter split when TOC matches body; else h1/h2 sections."""
-    lines = cleaned.split("\n")
-    chapters = find_toc_chapters(raw_content)
-    chapter_starts = find_chapter_lines(lines, chapters)
-
-    if chapter_starts:
-        return split_by_chapters(lines, chapter_starts)
-
+    """General doc splitting using # / ## / ### headings."""
     sections = extract_sections(cleaned, min_lines=5)
     if sections:
         return sections

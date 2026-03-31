@@ -40,7 +40,7 @@ def cmd_search(conn, keyword: str, workshop: Optional[str], doc_type: Optional[s
     if doc_type:
         sql += " AND doc_type = ?"
         params.append(doc_type)
-    sql += " ORDER BY id"
+    sql += " ORDER BY source_doc, id LIMIT 50"
 
     rows = conn.execute(sql, params).fetchall()
     for row in rows:
@@ -51,21 +51,28 @@ def cmd_search(conn, keyword: str, workshop: Optional[str], doc_type: Optional[s
     print(f"count={len(rows)}")
 
 
-def cmd_list(conn, workshop: str) -> None:
-    rows = conn.execute(
-        """
-        SELECT id, section_title, source_doc, doc_type, line_count
+def cmd_list(conn, workshop: Optional[str]) -> None:
+    sql = """
+        SELECT id, section_title, source_doc, doc_type, line_count, workshop
         FROM chunks
-        WHERE workshop = ?
-        ORDER BY source_doc, id
-        """,
-        (workshop,),
-    ).fetchall()
+        """
+    params: list = []
+    if workshop:
+        sql += " WHERE workshop = ?"
+        params.append(workshop)
+    sql += " ORDER BY workshop, source_doc, id" if not workshop else " ORDER BY source_doc, id"
+    rows = conn.execute(sql, params).fetchall()
     for row in rows:
-        print(
-            f"{row['id']}\t{row['section_title']}\t{row['source_doc']}\t"
-            f"{row['doc_type']}\t{row['line_count']}"
-        )
+        if workshop:
+            print(
+                f"{row['id']}\t{row['section_title']}\t{row['source_doc']}\t"
+                f"{row['doc_type']}\t{row['line_count']}"
+            )
+        else:
+            print(
+                f"{row['id']}\t{row['workshop']}\t{row['section_title']}\t{row['source_doc']}\t"
+                f"{row['doc_type']}\t{row['line_count']}"
+            )
     print(f"count={len(rows)}")
 
 
@@ -89,18 +96,27 @@ def cmd_get(conn, ids: List[int]) -> None:
         print()
 
 
-def cmd_stats(conn, workshop: str) -> None:
-    total = conn.execute(
-        "SELECT COUNT(*) AS c, COALESCE(SUM(line_count), 0) AS lines FROM chunks WHERE workshop = ?",
-        (workshop,),
-    ).fetchone()
-    by_type = conn.execute(
-        "SELECT doc_type, COUNT(*) AS c, SUM(line_count) AS lines "
-        "FROM chunks WHERE workshop = ? GROUP BY doc_type ORDER BY doc_type",
-        (workshop,),
-    ).fetchall()
+def cmd_stats(conn, workshop: Optional[str]) -> None:
+    if workshop:
+        total = conn.execute(
+            "SELECT COUNT(*) AS c, COALESCE(SUM(line_count), 0) AS lines FROM chunks WHERE workshop = ?",
+            (workshop,),
+        ).fetchone()
+        by_type = conn.execute(
+            "SELECT doc_type, COUNT(*) AS c, SUM(line_count) AS lines "
+            "FROM chunks WHERE workshop = ? GROUP BY doc_type ORDER BY doc_type",
+            (workshop,),
+        ).fetchall()
+    else:
+        total = conn.execute(
+            "SELECT COUNT(*) AS c, COALESCE(SUM(line_count), 0) AS lines FROM chunks",
+        ).fetchone()
+        by_type = conn.execute(
+            "SELECT doc_type, COUNT(*) AS c, SUM(line_count) AS lines "
+            "FROM chunks GROUP BY doc_type ORDER BY doc_type",
+        ).fetchall()
 
-    print(f"workshop={workshop}")
+    print(f"workshop={workshop if workshop else 'all'}")
     print(f"chunks={total['c']}")
     print(f"total_lines={total['lines']}")
     print("by_doc_type:")
@@ -119,14 +135,14 @@ def main() -> None:
     p_search.add_argument("--workshop", default=None)
     p_search.add_argument("--doc-type", dest="doc_type", default=None)
 
-    p_list = sub.add_parser("list", help="List chunk summaries for a workshop")
-    p_list.add_argument("--workshop", required=True)
+    p_list = sub.add_parser("list", help="List chunk summaries (optional workshop filter)")
+    p_list.add_argument("--workshop", default=None)
 
     p_get = sub.add_parser("get", help="Fetch full chunk content by id")
     p_get.add_argument("ids", type=int, nargs="+", help="Chunk id(s)")
 
     p_stats = sub.add_parser("stats", help="Chunk counts and line totals")
-    p_stats.add_argument("--workshop", required=True)
+    p_stats.add_argument("--workshop", default=None)
 
     args = parser.parse_args()
     conn = connect(args.db)

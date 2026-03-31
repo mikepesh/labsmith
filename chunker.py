@@ -13,6 +13,8 @@ import sys
 from pathlib import Path
 
 
+ALLOWED_DOC_TYPES = frozenset({"admin", "cli", "datasheet", "release-notes"})
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS chunks (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -271,9 +273,20 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Chunk markdown into labsmith.db")
     parser.add_argument("input", type=Path, help="Input .md file")
     parser.add_argument("--workshop", required=True, help="Workshop tag (e.g. cisco-to-fortinet)")
-    parser.add_argument("--doc-type", required=True, dest="doc_type", help="admin, cli, datasheet, ...")
+    parser.add_argument(
+        "--doc-type",
+        required=True,
+        dest="doc_type",
+        metavar="TYPE",
+        help="One of: admin, cli, datasheet, release-notes",
+    )
     parser.add_argument("--db", default="labsmith.db", help="SQLite database path")
     args = parser.parse_args()
+
+    if args.doc_type not in ALLOWED_DOC_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_DOC_TYPES))
+        print(f"Error: --doc-type must be one of: {allowed}", file=sys.stderr)
+        sys.exit(1)
 
     input_path: Path = args.input
     if not input_path.is_file():

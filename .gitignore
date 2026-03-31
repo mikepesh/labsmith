@@ -1,6 +1,7 @@
 labsmith.db
 marker/output/
 marker/processed/
+workshops/
 marker/to-process/*
 !marker/to-process/.gitkeep
 *.pyc

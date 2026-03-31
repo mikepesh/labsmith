@@ -12,4 +12,4 @@ bash setup.sh
 
 Then install `labsmith.plugin` in Claude Desktop.
 
-Full setup, usage, and best practices: **[SE-GUIDE.md](SE-GUIDE.md)**
+Full setup, usage, and best practices: **[USER-GUIDE.md](USER-GUIDE.md)**

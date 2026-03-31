@@ -1,4 +1,4 @@
-# LabSmith — SE Guide
+# LabSmith — User Guide
 
 LabSmith builds hands-on training modules from vendor PDFs. You convert documentation once, then generate as many lab modules as you need — each one grounded in the actual product docs, not hallucinated.
 

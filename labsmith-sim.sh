@@ -13,6 +13,7 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 NC='\033[0m'
 
+LABSMITH_ISSUES_URL="https://github.com/mikepesh/labsmith/issues"
 LABSMITH_BOX_IW=54
 
 labsmith_sim_center() {
@@ -101,7 +102,10 @@ while true; do
             ;;
         q|quit|exit)
             echo ""
-            echo -e "${GREEN}Bye.${NC}"
+            echo "Thanks for trying this out."
+            echo "If it failed you in one way or another, or you ran into a login issue, please tell us here:"
+            echo -e "  ${CYAN}${LABSMITH_ISSUES_URL}${NC}"
+            echo ""
             exit 0
             ;;
         *)

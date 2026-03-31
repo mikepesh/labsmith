@@ -28,6 +28,7 @@ LABSMITH_BOX_IW=54
 TP_PASS="✅"
 TP_FAIL="❌"
 TP_WARN="⚠️"
+LABSMITH_ISSUES_URL="https://github.com/mikepesh/labsmith/issues"
 
 needs_python=false
 needs_git=false
@@ -41,6 +42,14 @@ labsmith_cleanup_int() {
 trap labsmith_cleanup_int INT
 
 # ── Helpers ────────────────────────────────────────────────────────
+labsmith_farewell_quit() {
+    echo ""
+    echo "Thanks for trying this out."
+    echo "If it failed you in one way or another, or you ran into a login issue, please tell us here:"
+    echo -e "  ${CYAN}${LABSMITH_ISSUES_URL}${NC}"
+    echo ""
+}
+
 labsmith_pause() {
     echo ""
     read -r -p "Press Enter to continue... " _
@@ -547,7 +556,7 @@ labsmith_step_drop_files() {
                 break
             fi
             if [ "$action" = "q" ]; then
-                echo "Goodbye."
+                labsmith_farewell_quit
                 exit 0
             fi
             if labsmith_print_pdf_list "$WATCH_DIR"; then
@@ -604,7 +613,7 @@ labsmith_step_convert() {
     read -r -p "  Press Enter to start, or q to quit... " go
     go=$(labsmith_str_lower "$(echo "$go" | tr -d '[:space:]')")
     if [ "$go" = "q" ]; then
-        echo "Goodbye."
+        labsmith_farewell_quit
         exit 0
     fi
 

@@ -13,9 +13,39 @@ This skill generates a complete, structured lab module grounded in real vendor d
 
 **Claude writes the module directly. No external generation tools.**
 
-## Repository root
+## Cowork runtime (read-only plugin)
 
-All commands below assume the **LabSmith repository root** (the folder containing `chunker.py`, `query.py`, and `plugin/`).
+The **plugin directory is extracted read-only**. Do not write modules, databases, or scratch files under the plugin tree.
+
+- **`chunker.py` / `query.py` / `marker/` / `workshops/` / `labsmith.db`** — always on the user’s **mounted LabSmith workspace** (discovered below).
+- **Module format spec** — read from the skill bundle only: `skills/build-module/references/module-format.md` (relative to the extracted plugin root; readable, not writable).
+
+## Resolve the LabSmith workspace **first**
+
+Before running `query.py` or writing to `workshops/`, find a directory that contains **all** of: `chunker.py`, `query.py`, and `marker/process-now.sh`. That directory is **LABSMITH_ROOT** (same discovery rule as the convert skill).
+
+Cowork mounts the user’s project under session mounts, typically:
+
+`/sessions/<session-id>/mnt/<folder-name>/`
+
+Discover candidates:
+
+```bash
+for d in /sessions/*/mnt/*/; do
+  [ -f "${d}chunker.py" ] && [ -f "${d}query.py" ] && [ -f "${d}marker/process-now.sh" ] && echo "${d}"
+done
+```
+
+- **Zero results:** Stop and ask the user to **mount their LabSmith repo** in Cowork, then re-run the check (same pattern as the convert skill).
+- **One result:** Use it as **LABSMITH_ROOT**.
+- **Multiple results:** Prefer a mount named `labsmith` if present; otherwise list paths and ask which workspace to use.
+
+Use **LABSMITH_ROOT** for every bash command:
+
+```bash
+cd "$LABSMITH_ROOT" || exit 1
+pwd
+```
 
 ## Workflow
 
@@ -37,7 +67,7 @@ Use the AskUserQuestion tool for structured fields where possible.
 
 ### Stage 2 — Query reference material
 
-Search SQLite for chunks relevant to the module topic:
+From **LABSMITH_ROOT**:
 
 ```bash
 python3 query.py search "<topic keywords>" --workshop <workshop> --db labsmith.db
@@ -59,11 +89,11 @@ If no relevant chunks exist, warn the user: "I don't have reference material on 
 
 ### Stage 3 — Generate the module
 
-Read the module format reference first:
+Read the canonical format from the **bundled** reference (plugin read-only tree):
 
-`plugin/skills/build-module/references/module-format.md` (relative to the repository root).
+`skills/build-module/references/module-format.md`
 
-Then write the full module as a single markdown file.
+Then write the full module as a single markdown file (content goes to the **workspace**, not the plugin).
 
 #### Module structure (always follow this exact order)
 
@@ -97,20 +127,20 @@ Then write the full module as a single markdown file.
 
 ### Stage 4 — Save and verify
 
-Write the module to the workshop's modules directory:
+Write the module under **LABSMITH_ROOT** only:
 
 ```bash
-# Save
-cat > workshops/<workshop>/modules/Module-<number>-<title-slug>.md << 'EOF'
+cd "$LABSMITH_ROOT"
+cat > "workshops/<workshop>/modules/Module-<number>-<title-slug>.md" << 'EOF'
 <full module content>
 EOF
 ```
 
-After saving, verify the file:
+Verify:
 
 ```bash
-wc -l workshops/<workshop>/modules/Module-<number>-<title-slug>.md
-head -20 workshops/<workshop>/modules/Module-<number>-<title-slug>.md
+wc -l "workshops/<workshop>/modules/Module-<number>-<title-slug>.md"
+head -20 "workshops/<workshop>/modules/Module-<number>-<title-slug>.md"
 ```
 
 Report: filename, line count, sections present.
@@ -119,7 +149,8 @@ Report: filename, line count, sections present.
 
 | Situation | Action |
 |-----------|--------|
+| LabSmith workspace not mounted / discover finds 0 roots | Ask the user to mount the LabSmith repo in Cowork, then re-run discovery |
 | No chunks in SQLite for this workshop | Warn user. Offer to generate with VERIFY comments or suggest running convert first. |
 | Search returns no relevant chunks | Broaden search terms. Try `--doc-type` filter. If still nothing, warn and use VERIFY comments. |
 | Module under 100 lines | Always expand — incomplete output. |
-| Workshop directory missing | Create it: `mkdir -p workshops/<name>/{references,modules}` |
+| Workshop directory missing | From **LABSMITH_ROOT**: `mkdir -p workshops/<name>/{references,modules}` |

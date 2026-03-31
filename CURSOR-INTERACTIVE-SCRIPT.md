@@ -125,32 +125,9 @@ After Enter, scan the directory and list what was found:
 
 If no PDFs found, say so and offer **wait again** (Enter), **go back** to workshop selection (`w`), or **quit** (`q`).
 
-### Step 5 — Doc Type & Convert
+### Step 5 — Convert
 
-First offer the default: **`reference`** for all files (no per-file questions) unless the user opts in to classify.
-
-```
-  ═══ Document Types ═══
-
-  Default doc type is reference (general material).
-  Classify each file (a/c/d/r)? [y/N]
-```
-
-If **N** or Enter: use `reference` for every file and call `chunker.py` **without** `--doc-type` (default).
-
-If **y**: for each PDF, ask the doc type:
-
-```
-  What type of document is each file?
-
-    [a] Admin guide    [c] CLI reference
-    [d] Datasheet      [r] Release notes
-    [Enter]            reference
-
-  FortiOS-Admin-Guide.pdf ............... type: a
-```
-
-If there's only one file, just ask once. If multiple files are the same type, offer "Apply to all? (y/n)".
+There is **no doc-type prompt** in the interactive script: every file is chunked with **`chunker.py`’s default** (`reference`). Users who need `admin` / `cli` / etc. can run `chunker.py` manually with `--doc-type` after Marker.
 
 Then confirm and start conversion:
 

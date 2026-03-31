@@ -319,17 +319,6 @@ labsmith_ensure_pymupdf_and_dirs() {
     exit 1
 }
 
-labsmith_doc_type_from_key() {
-    case "$1" in
-        a|A) echo "admin" ;;
-        c|C) echo "cli" ;;
-        d|D) echo "datasheet" ;;
-        r|R) echo "release-notes" ;;
-        '') echo "reference" ;;
-        *) echo "" ;;
-    esac
-}
-
 # For --step convert|done when workshop selection was skipped
 labsmith_sim_apply_workshop_env() {
     if [ -z "$SELECTED_WORKSHOP" ] && [ -n "${LABSMITH_WORKSHOP:-}" ]; then
@@ -599,7 +588,6 @@ labsmith_step_convert() {
     done <"$tmp"
     rm -f "$tmp"
 
-    declare -a DOCTYPES
     declare -a BASENAMES
     local i=0
     while IFS= read -r base; do
@@ -609,59 +597,6 @@ labsmith_step_convert() {
     done <"$mapf"
     rm -f "$mapf"
     local nb=${#BASENAMES[@]}
-
-    echo ""
-    echo -e "${BOLD}${WHITE}  ═══ Document Types ═══${NC}"
-    echo ""
-    echo "  Default doc type is ${BOLD}reference${NC} (general material — same chunking as admin guides)."
-    echo "  You can skip classification and use reference for every file."
-    echo ""
-    read -r -p "  Classify each file (a/c/d/r)? [y/N] " cls_all
-    cls_all=$(labsmith_str_lower "$(echo "$cls_all" | tr -d '[:space:]')")
-
-    local j=0
-    if [ "$cls_all" = "y" ] || [ "$cls_all" = "yes" ]; then
-        echo ""
-        echo "  What type of document is each file?"
-        echo ""
-        echo "    [a] Admin guide    [c] CLI reference"
-        echo "    [d] Datasheet      [r] Release notes"
-        echo "    [Enter]            reference"
-        echo ""
-        while [ "$j" -lt "$nb" ]; do
-            local b tkey dtype
-            b="${BASENAMES[$j]}"
-            echo -n "  $b  "
-            read -r -p "type (a/c/d/r or Enter=reference): " tkey
-            tkey=$(labsmith_str_lower "$(echo "$tkey" | tr -d '[:space:]')")
-            dtype=$(labsmith_doc_type_from_key "$tkey")
-            while [ -z "$dtype" ]; do
-                read -r -p "  Enter a, c, d, r, or Enter for reference: " tkey
-                tkey=$(labsmith_str_lower "$(echo "$tkey" | tr -d '[:space:]')")
-                dtype=$(labsmith_doc_type_from_key "$tkey")
-            done
-            DOCTYPES[$j]="$dtype"
-            if [ "$nb" -gt 1 ] && [ "$j" -eq 0 ]; then
-                read -r -p "  Apply this type to all remaining files? (y/n) " ap
-                ap=$(labsmith_str_lower "$(echo "$ap" | tr -d '[:space:]')")
-                if [ "$ap" = "y" ] || [ "$ap" = "yes" ]; then
-                    local k=$((j + 1))
-                    while [ "$k" -lt "$nb" ]; do
-                        DOCTYPES[$k]="$dtype"
-                        k=$((k + 1))
-                    done
-                    break
-                fi
-            fi
-            j=$((j + 1))
-        done
-    else
-        while [ "$j" -lt "$nb" ]; do
-            DOCTYPES[$j]="reference"
-            j=$((j + 1))
-        done
-        echo -e "  ${GREEN}${TP_PASS}${NC} Using doc type ${BOLD}reference${NC} for all $nb file(s)."
-    fi
 
     echo ""
     echo -e "  ${BOLD}Ready to process $nb file(s) for workshop \"${SELECTED_WORKSHOP}\"${NC}"
@@ -677,9 +612,8 @@ labsmith_step_convert() {
 
     local fi=0
     while [ "$fi" -lt "$nb" ]; do
-        local base dtype base_noext outmd
+        local base base_noext outmd
         base="${BASENAMES[$fi]}"
-        dtype="${DOCTYPES[$fi]}"
         base_noext="${base%.pdf}"
         base_noext="${base_noext%.PDF}"
         outmd="$MARKER_DIR/output/${base_noext}.md"
@@ -710,11 +644,7 @@ labsmith_step_convert() {
             echo ""
             echo -e "  ${CYAN}🔄 Chunking into SQLite...${NC}"
             local cout
-            if [ "$dtype" = "reference" ]; then
-                cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --db "$DB_PATH" 2>&1)
-            else
-                cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --doc-type "$dtype" --db "$DB_PATH" 2>&1)
-            fi
+            cout=$(python3 "$LABSMITH_DIR/chunker.py" "$outmd" --workshop "$SELECTED_WORKSHOP" --db "$DB_PATH" 2>&1)
             echo "$cout"
             local inserted
             inserted=$(echo "$cout" | sed -n 's/^Chunks inserted: //p' | head -1)

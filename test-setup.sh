@@ -7,7 +7,7 @@
 #   bash test-setup.sh --no-python      # simulate missing Python
 #   bash test-setup.sh --no-git         # simulate missing git
 #   bash test-setup.sh --no-brew        # simulate missing Homebrew
-#   bash test-setup.sh --old-python     # simulate Python 3.9
+#   bash test-setup.sh --old-python     # simulate Python 3.8 (below minimum)
 #   bash test-setup.sh --no-python --no-git
 #   bash test-setup.sh --clean          # python + git + brew missing
 #
@@ -38,7 +38,7 @@ STUB
     chmod +x "$FAKE_BIN/$cmd"
 }
 
-# Python stub: version probe prints 3.9; other invocations delegate to a real interpreter (not from FAKE_BIN)
+# Python stub: version probe prints 3.8; other invocations delegate to a real interpreter (not from FAKE_BIN)
 fake_old_python() {
     local real_py=""
     for cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
@@ -49,10 +49,10 @@ fake_old_python() {
     done
     cat > "$FAKE_BIN/python3" << EOF
 #!/bin/bash
-# labsmith-test: old-python — version check returns 3.9; else real interpreter
+# labsmith-test: old-python — version check returns 3.8; else real interpreter
 case "\$*" in
   *sys.version_info*)
-    echo "3.9"
+    echo "3.8"
     exit 0
     ;;
 esac
@@ -87,7 +87,7 @@ for arg in "$@"; do
             echo "  --no-python    Stub python3 (exit 127)"
             echo "  --no-git       Stub git (exit 127)"
             echo "  --no-brew      Stub brew (exit 127)"
-            echo "  --old-python   Fake Python 3.9 for version probe"
+            echo "  --old-python   Fake Python 3.8 for version probe (below minimum)"
             echo "  --clean        Stub python3, git, and brew"
             echo "  (no flags)     Run all scenarios sequentially"
             exit 0
@@ -173,7 +173,7 @@ echo ""
 
 run_scenario "Happy path (no stubs)"
 run_scenario "Missing Python"                     no-python
-run_scenario "Old Python (3.9)"                   old-python
+run_scenario "Old Python (3.8)"                   old-python
 run_scenario "Missing git"                        no-git
 run_scenario "Missing Python + git"              no-python no-git
 run_scenario "Missing Homebrew + Python"         no-brew no-python

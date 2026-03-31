@@ -23,7 +23,7 @@ No GitHub account? Just message me directly — Slack, email, whatever works.
 ## Prerequisites
 
 - **Claude Pro, Team, or Enterprise subscription** — Cowork mode is required, which is not available on the free tier
-- **Python 3.10+** and **git** — the setup script checks both
+- **Python 3.9+** and **git** — the setup script checks both
 - **macOS or Linux** — the PDF converter and shell scripts assume a Unix environment
 
 ## Setup (one time, ~5 minutes)
@@ -36,7 +36,7 @@ cd ~/Documents/labsmith
 bash setup.sh
 ```
 
-The setup script checks Python 3.10+, installs the PDF converter, runs the test suite, and tells you if anything is wrong. If everything passes, you're ready.
+The setup script checks Python 3.9+, installs the PDF converter, runs the test suite, and tells you if anything is wrong. If everything passes, you're ready.
 
 ### 2. Install the Cowork plugin
 

@@ -9,7 +9,7 @@ Three steps: **Convert → Build → Deliver.**
 ## Prerequisites
 
 - **Claude Desktop** with Cowork mode enabled
-- **Python 3.10+** installed on your Mac
+- **Python 3.9+** installed on your Mac
 - **Git** (for cloning the repo)
 - A set of vendor PDFs you want to build a workshop from (datasheets, admin guides, CLI references, release notes)
 

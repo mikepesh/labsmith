@@ -3,6 +3,9 @@
 # Bash 3.2+ (macOS default). No extra dependencies.
 #
 # Usage:  cd /path/to/labsmith && bash labsmith.sh
+#         bash labsmith.sh --step prereqs
+#         LABSMITH_WORKSHOP=my-ws bash labsmith.sh --step convert
+# Sim menu: bash labsmith-sim.sh
 
 # ── ANSI ─────────────────────────────────────────────────────────────
 BOLD='\033[1m'
@@ -20,6 +23,8 @@ MARKER_DIR="$LABSMITH_DIR/marker"
 VENV_DIR="$MARKER_DIR/venv"
 DB_PATH="$LABSMITH_DIR/labsmith.db"
 WATCH_DIR="$MARKER_DIR/to-process"
+# Inner width between ║ and ║ (must match ═ count on ╔═══╗ line)
+LABSMITH_BOX_IW=54
 TP_PASS="✅"
 TP_FAIL="❌"
 TP_WARN="⚠️"
@@ -30,7 +35,7 @@ SELECTED_WORKSHOP=""
 
 labsmith_cleanup_int() {
     echo ""
-    echo -e "${RED}Interrupted — you can run ${BOLD}bash labsmith.sh${NC}${RED} again anytime.${NC}"
+    echo -e "${RED}Interrupted — run ${BOLD}bash labsmith.sh${NC}${RED} or ${BOLD}bash labsmith-sim.sh${NC}${RED} again anytime.${NC}"
     exit 130
 }
 trap labsmith_cleanup_int INT
@@ -43,6 +48,26 @@ labsmith_pause() {
 
 labsmith_str_lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+# User-facing paths only (Cowork/docs assume ~/Documents/labsmith, not .../Documents/CODING/labsmith)
+labsmith_path_for_display() {
+    local d="$1"
+    echo "${d//\/Documents\/CODING\/labsmith/\/Documents\/labsmith}"
+}
+
+# Center plain ASCII in the banner interior (${#} is exact for ASCII on bash 3.2)
+labsmith_center_in_box() {
+    local text="$1"
+    local width="${2:-$LABSMITH_BOX_IW}"
+    local len=${#text}
+    if [ "$len" -gt "$width" ]; then
+        text="${text:0:$width}"
+        len=$width
+    fi
+    local left=$(( (width - len) / 2 ))
+    local right=$(( width - len - left ))
+    printf '%*s%s%*s' "$left" '' "$text" "$right" ''
 }
 
 labsmith_file_size_bytes() {
@@ -119,7 +144,8 @@ labsmith_manual_macos() {
     echo -e "     ${CYAN}bash labsmith.sh${NC}"
     echo ""
     echo "  • Homebrew (if needed): https://brew.sh"
-    $needs_python && echo "  • Python 3.10+:  brew install python@3.12"
+    $needs_python && echo "  • Python 3.9+:  brew install python@3.12"
+    $needs_python && echo "    export PATH=\"\$(brew --prefix python@3.12)/bin:\$PATH\"  (before Apple /usr/bin/python3)"
     $needs_git && echo "  • Git:             brew install git"
     echo ""
 }
@@ -136,6 +162,17 @@ labsmith_manual_linux() {
 
 labsmith_python_version_or_empty() {
     python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo ""
+}
+
+# python@3.12 is keg-only; put it ahead of /usr/bin/python3 (often 3.9 on macOS)
+labsmith_prepend_brew_python312_path() {
+    [ "$(uname)" = "Darwin" ] || return 1
+    brew --version >/dev/null 2>&1 || return 1
+    local px
+    px=$(brew --prefix python@3.12 2>/dev/null) || return 1
+    [ -n "$px" ] && [ -x "$px/bin/python3" ] || return 1
+    export PATH="$px/bin:$PATH"
+    return 0
 }
 
 labsmith_git_version_or_empty() {
@@ -189,14 +226,15 @@ labsmith_install_prereqs_if_needed() {
             brew install $to_install || true
             echo ""
             if $needs_python; then
+                labsmith_prepend_brew_python312_path || true
                 local pyc maj min
                 pyc=$(labsmith_python_version_or_empty)
                 if [ -z "$pyc" ]; then
                     echo -e "${RED}Python install failed.${NC}"; labsmith_manual_macos; exit 1
                 fi
                 maj=$(echo "$pyc" | cut -d. -f1); min=$(echo "$pyc" | cut -d. -f2)
-                if ! { [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 10 ]; }; }; then
-                    echo -e "${RED}Python still below 3.10.${NC}"; labsmith_manual_macos; exit 1
+                if ! { [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 9 ]; }; }; then
+                    echo -e "${RED}Python still below 3.9.${NC}"; labsmith_manual_macos; exit 1
                 fi
             fi
             if $needs_git; then
@@ -235,7 +273,7 @@ labsmith_install_prereqs_if_needed() {
             pyc=$(labsmith_python_version_or_empty)
             if [ -z "$pyc" ]; then labsmith_manual_linux; exit 1; fi
             maj=$(echo "$pyc" | cut -d. -f1); min=$(echo "$pyc" | cut -d. -f2)
-            if ! { [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 10 ]; }; }; then
+            if ! { [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 9 ]; }; }; then
                 labsmith_manual_linux; exit 1
             fi
         fi
@@ -284,13 +322,37 @@ labsmith_doc_type_from_key() {
     esac
 }
 
+# For --step convert|done when workshop selection was skipped
+labsmith_sim_apply_workshop_env() {
+    if [ -z "$SELECTED_WORKSHOP" ] && [ -n "${LABSMITH_WORKSHOP:-}" ]; then
+        SELECTED_WORKSHOP=$(labsmith_str_lower "${LABSMITH_WORKSHOP}")
+    fi
+}
+
+labsmith_sim_require_workshop() {
+    labsmith_sim_apply_workshop_env
+    if [ -z "$SELECTED_WORKSHOP" ]; then
+        echo ""
+        echo -e "  ${YELLOW}${TP_WARN}${NC} No workshop was selected in this shell (skipped step 3)."
+        read -r -p "  Workshop name (lowercase-hyphens, e.g. my-workshop): " SELECTED_WORKSHOP
+        SELECTED_WORKSHOP=$(labsmith_str_lower "$(echo "$SELECTED_WORKSHOP" | tr -d '[:space:]')")
+    fi
+    if ! echo "$SELECTED_WORKSHOP" | grep -qE '^[a-z0-9][a-z0-9-]*$'; then
+        echo -e "  ${RED}Invalid workshop name. Use lowercase letters, numbers, hyphens.${NC}"
+        echo "  Or set ${BOLD}LABSMITH_WORKSHOP${NC} before running this step."
+        return 1
+    fi
+    mkdir -p "$LABSMITH_DIR/workshops/$SELECTED_WORKSHOP/modules" "$LABSMITH_DIR/workshops/$SELECTED_WORKSHOP/references"
+    return 0
+}
+
 # ═══ Step 1 ═══
 labsmith_step_welcome() {
     clear
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${WHITE}                LabSmith v0.1.0                      ${NC}${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}     ${DIM}Workshop Builder for Presales Engineers${NC}        ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}${BOLD}${WHITE}$(labsmith_center_in_box "LabSmith v0.1.0")${NC}${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}${DIM}$(labsmith_center_in_box "Workshop Builder for Presales Engineers")${NC}${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "  ${DIM}Convert vendor PDFs into searchable reference material for workshop building.${NC}"
@@ -316,19 +378,38 @@ labsmith_step_prereqs() {
     needs_python=false
     needs_git=false
 
+    if [ "$(uname)" = "Darwin" ]; then
+        if [ -x /opt/homebrew/bin/brew ]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [ -x /usr/local/bin/brew ]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
+    fi
+
     pyver=$(labsmith_python_version_or_empty)
     if [ -n "$pyver" ]; then
         local maj min
         maj=$(echo "$pyver" | cut -d. -f1)
         min=$(echo "$pyver" | cut -d. -f2)
-        if [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 10 ]; }; then
-            py_disp=$(printf "  %-16s ${GREEN}${TP_PASS}${NC}  %s" "Python 3.10+" "$pyver")
+        if [ "$maj" -lt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -lt 9 ]; }; then
+            labsmith_prepend_brew_python312_path && pyver=$(labsmith_python_version_or_empty)
+        fi
+    else
+        labsmith_prepend_brew_python312_path && pyver=$(labsmith_python_version_or_empty)
+    fi
+
+    if [ -n "$pyver" ]; then
+        local maj min
+        maj=$(echo "$pyver" | cut -d. -f1)
+        min=$(echo "$pyver" | cut -d. -f2)
+        if [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 9 ]; }; then
+            py_disp=$(printf "  %-16s ${GREEN}${TP_PASS}${NC}  %s" "Python 3.9+" "$pyver")
         else
-            py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  need 3.10+ (have %s)" "Python 3.10+" "$pyver")
+            py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  need 3.9+ (have %s)" "Python 3.9+" "$pyver")
             needs_python=true
         fi
     else
-        py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  not found" "Python 3.10+")
+        py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  not found" "Python 3.9+")
         needs_python=true
     fi
 
@@ -440,15 +521,16 @@ labsmith_step_workshop() {
 
 # ═══ Step 4 ═══
 labsmith_step_drop_files() {
-    local abs_in
+    local abs_in abs_show
     abs_in=$(cd "$WATCH_DIR" && pwd 2>/dev/null || echo "$WATCH_DIR")
+    abs_show=$(labsmith_path_for_display "$abs_in")
     clear
     echo ""
     echo -e "${BOLD}${WHITE}  ═══ Add Documents ═══${NC}"
     echo ""
     echo "  Drop your PDF files into this folder:"
     echo ""
-    echo -e "    📂  ${CYAN}$abs_in${NC}"
+    echo -e "    📂  ${CYAN}$abs_show${NC}"
     echo ""
     while true; do
         read -r -p "  When your files are in place, press Enter (or r to refresh list)... " action
@@ -607,7 +689,7 @@ labsmith_step_done() {
     clear
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${WHITE}            Processing Complete                     ${NC}${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}${BOLD}${WHITE}$(labsmith_center_in_box "Processing Complete")${NC}${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
     echo ""
 
@@ -630,7 +712,7 @@ labsmith_step_done() {
     echo ""
     echo "  1. Open Claude Desktop → start a Cowork session"
     echo "  2. Mount your LabSmith folder:"
-    echo -e "     📂  ${CYAN}$LABSMITH_DIR${NC}"
+    echo -e "     📂  ${CYAN}$(labsmith_path_for_display "$LABSMITH_DIR")${NC}"
     echo "  3. Ask Claude to build a module, e.g.:"
     echo ""
     echo "     \"Build a module on firewall policies for the $SELECTED_WORKSHOP workshop\""
@@ -638,20 +720,102 @@ labsmith_step_done() {
     labsmith_pause
 }
 
-# ═══ main ═══
-if [ ! -f "$LABSMITH_DIR/chunker.py" ] || [ ! -f "$LABSMITH_DIR/query.py" ] || [ ! -f "$MARKER_DIR/process-now.sh" ]; then
-    echo -e "${RED}Run this script from the LabSmith repository root (chunker.py / query.py / marker/ missing).${NC}"
+# ═══ CLI / main ═══
+labsmith_require_repo() {
+    if [ ! -f "$LABSMITH_DIR/chunker.py" ] || [ ! -f "$LABSMITH_DIR/query.py" ] || [ ! -f "$MARKER_DIR/process-now.sh" ]; then
+        echo -e "${RED}Run this script from the LabSmith repository root (chunker.py / query.py / marker/ missing).${NC}"
+        return 1
+    fi
+    return 0
+}
+
+labsmith_usage() {
+    echo "LabSmith interactive workflow"
+    echo ""
+    echo "  bash labsmith.sh              Run all steps (welcome → done)"
+    echo "  bash labsmith.sh --step STEP  Run one step (for testing)"
+    echo "  bash labsmith-sim.sh          Interactive step picker"
+    echo ""
+    echo "Steps: welcome, prereqs, workshop, drop, convert, done"
+    echo "Aliases: files (drop), summary (done)"
+    echo ""
+    echo "For convert or done without running workshop selection first:"
+    echo "  LABSMITH_WORKSHOP=my-ws bash labsmith.sh --step convert"
+}
+
+labsmith_run_full() {
+    labsmith_step_welcome
+    labsmith_step_prereqs
+    labsmith_step_workshop
+    labsmith_step_drop_files
+    labsmith_step_convert
+    labsmith_step_done
+    echo ""
+    echo -e "${GREEN}Done.${NC}"
+    echo ""
+}
+
+labsmith_run_step() {
+    local s
+    s=$(labsmith_str_lower "$1")
+    case "$s" in
+        welcome)
+            labsmith_step_welcome
+            ;;
+        prereqs|prerequisite|prerequisites)
+            labsmith_step_prereqs
+            ;;
+        workshop|ws)
+            labsmith_step_workshop
+            ;;
+        drop|files)
+            labsmith_step_drop_files
+            ;;
+        convert|process)
+            labsmith_sim_require_workshop || return 1
+            labsmith_step_convert
+            ;;
+        done|summary|finish)
+            labsmith_sim_require_workshop || return 1
+            labsmith_step_done
+            ;;
+        *)
+            echo -e "${RED}Unknown step: ${1:-}(empty)${NC}"
+            echo "Valid: welcome, prereqs, workshop, drop, convert, done"
+            return 1
+            ;;
+    esac
+}
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+    labsmith_usage
+    exit 0
+fi
+
+if [ "${1:-}" = "--step" ]; then
+    shift
+    if ! labsmith_require_repo; then
+        exit 1
+    fi
+    st="${1:-}"
+    if [ -z "$st" ]; then
+        labsmith_usage
+        exit 1
+    fi
+    if ! labsmith_run_step "$st"; then
+        exit 1
+    fi
+    exit 0
+fi
+
+if [ -n "${1:-}" ]; then
+    echo -e "${RED}Unknown argument: $1${NC}"
+    labsmith_usage
     exit 1
 fi
 
-labsmith_step_welcome
-labsmith_step_prereqs
-labsmith_step_workshop
-labsmith_step_drop_files
-labsmith_step_convert
-labsmith_step_done
-
-echo ""
-echo -e "${GREEN}Done.${NC}"
-echo ""
+if ! labsmith_require_repo; then
+    exit 1
+fi
+labsmith_run_full
 

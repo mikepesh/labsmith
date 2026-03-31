@@ -11,11 +11,41 @@
 # as “missing” when they exit non‑zero, not via `command -v`.
 
 LABSMITH_DIR="${1:-$(cd "$(dirname "$0")" && pwd)}"
+
+labsmith_display_path() {
+    local d="$1"
+    echo "${d//\/Documents\/CODING\/labsmith/\/Documents\/labsmith}"
+}
+
 PASS="✅"
 FAIL="❌"
 WARN="⚠️"
 needs_python=false
 needs_git=false
+
+# macOS: Homebrew is often missing from non-interactive / minimal PATH
+if [ "$(uname)" = "Darwin" ]; then
+    if [ -x /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -x /usr/local/bin/brew ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+fi
+
+# python3 may still be Apple 3.9; python@3.12 is keg-only — prepend its bin when present
+labsmith_setup_get_py_ver() {
+    python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo ""
+}
+
+labsmith_setup_prepend_brew_python312() {
+    [ "$(uname)" = "Darwin" ] || return 1
+    brew --version >/dev/null 2>&1 || return 1
+    local px
+    px=$(brew --prefix python@3.12 2>/dev/null) || return 1
+    [ -n "$px" ] && [ -x "$px/bin/python3" ] || return 1
+    export PATH="$px/bin:$PATH"
+    return 0
+}
 
 echo ""
 echo "═══════════════════════════════════════"
@@ -23,20 +53,33 @@ echo "  LabSmith Setup"
 echo "═══════════════════════════════════════"
 echo ""
 
-# ── Check Python 3.10+ (run python3 directly; stubs that exit 127 → empty version) ──
+# ── Check Python 3.9+ (run python3 directly; stubs that exit 127 → empty version) ──
 echo "Checking Python..."
-PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null) || PY_VERSION=""
+PY_VERSION=$(labsmith_setup_get_py_ver)
+PY_MAJOR=0
+PY_MINOR=0
 if [ -n "$PY_VERSION" ]; then
     PY_MAJOR=$(echo "$PY_VERSION" | cut -d. -f1)
     PY_MINOR=$(echo "$PY_VERSION" | cut -d. -f2)
-    if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 10 ]; then
-        echo "  $PASS Python $PY_VERSION"
-    else
-        echo "  $FAIL Python $PY_VERSION found — need 3.10+"
-        needs_python=true
+fi
+# Prefer Homebrew 3.12 when default python3 is too old (brew install does not replace /usr/bin/python3)
+if [ -z "$PY_VERSION" ] || [ "$PY_MAJOR" -lt 3 ] || { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 9 ]; }; then
+    if labsmith_setup_prepend_brew_python312; then
+        PY_VERSION=$(labsmith_setup_get_py_ver)
+        if [ -n "$PY_VERSION" ]; then
+            PY_MAJOR=$(echo "$PY_VERSION" | cut -d. -f1)
+            PY_MINOR=$(echo "$PY_VERSION" | cut -d. -f2)
+        fi
     fi
+fi
+if [ -n "$PY_VERSION" ] && [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 9 ]; then
+    echo "  $PASS Python $PY_VERSION"
 else
-    echo "  $FAIL Python 3 not found (or not usable)"
+    if [ -n "$PY_VERSION" ]; then
+        echo "  $FAIL Python $PY_VERSION found — need 3.9+ (install python@3.12 and re-run, or fix PATH)"
+    else
+        echo "  $FAIL Python 3 not found (or not usable)"
+    fi
     needs_python=true
 fi
 
@@ -60,7 +103,8 @@ print_manual_install_macos() {
     echo ""
     echo "  • Homebrew (if needed): https://brew.sh"
     if $needs_python; then
-        echo "  • Python 3.10+:  brew install python@3.12"
+        echo "  • Python 3.9+:  brew install python@3.12"
+        echo "    Then put it ahead of Apple Python: export PATH=\"\$(brew --prefix python@3.12)/bin:\$PATH\""
     fi
     if $needs_git; then
         echo "  • Git:             brew install git"
@@ -133,15 +177,16 @@ if $needs_python || $needs_git; then
             echo ""
 
             if $needs_python; then
+                labsmith_setup_prepend_brew_python312 || true
                 PY_CHECK=""
-                PY_CHECK=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null) || PY_CHECK=""
+                PY_CHECK=$(labsmith_setup_get_py_ver)
                 if [ -n "$PY_CHECK" ]; then
                     PY_MAJOR=$(echo "$PY_CHECK" | cut -d. -f1)
                     PY_MINOR=$(echo "$PY_CHECK" | cut -d. -f2)
-                    if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 10 ]; then
+                    if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 9 ]; then
                         echo "  $PASS Python $PY_CHECK installed"
                     else
-                        echo "  $FAIL Python $PY_CHECK still below 3.10. Try: brew install python@3.12"
+                        echo "  $FAIL Python $PY_CHECK still below 3.9. Try: brew install python@3.12"
                         print_manual_install_macos
                         exit 1
                     fi
@@ -199,8 +244,8 @@ if $needs_python || $needs_git; then
                     fi
                     PY_MAJOR=$(echo "$PY_CHECK" | cut -d. -f1)
                     PY_MINOR=$(echo "$PY_CHECK" | cut -d. -f2)
-                    if [ "$PY_MAJOR" -lt 3 ] || [ "$PY_MINOR" -lt 10 ]; then
-                        echo "  $FAIL Python $PY_CHECK — need 3.10+"
+                    if [ "$PY_MAJOR" -lt 3 ] || [ "$PY_MINOR" -lt 9 ]; then
+                        echo "  $FAIL Python $PY_CHECK — need 3.9+"
                         print_manual_install_linux_apt
                         exit 1
                     fi
@@ -232,7 +277,7 @@ if $needs_python || $needs_git; then
     else
         echo ""
         echo "$FAIL Automatic install is only wired for macOS (Homebrew) and Linux (apt)."
-        echo "Install Python 3.10+ and git using your OS package manager, then re-run:"
+        echo "Install Python 3.9+ and git using your OS package manager, then re-run:"
         echo "    bash setup.sh"
         echo ""
         exit 1
@@ -243,7 +288,7 @@ fi
 echo ""
 echo "Checking LabSmith repo..."
 if [ -f "$LABSMITH_DIR/chunker.py" ] && [ -f "$LABSMITH_DIR/query.py" ] && [ -f "$LABSMITH_DIR/marker/process-now.sh" ]; then
-    echo "  $PASS Repo found at $LABSMITH_DIR"
+    echo "  $PASS Repo found at $(labsmith_display_path "$LABSMITH_DIR")"
 else
     echo "  $FAIL LabSmith repo not found at $LABSMITH_DIR"
     echo "     Clone it first:"

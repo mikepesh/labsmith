@@ -1,6 +1,8 @@
 labsmith.db
-marker/to-process/
-marker/processed/
+marker/to-process/*
+!marker/to-process/.gitkeep
+marker/processed/*
+!marker/processed/.gitkeep
 *.pyc
 __pycache__/
 .DS_Store

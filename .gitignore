@@ -8,5 +8,14 @@ marker/to-process/*
 __pycache__/
 .DS_Store
 venv/
+marker/venv/
 
 .cursor-prompts/
+
+# Maintainer-only / local QA (not published to GitHub)
+test-pipeline.sh
+test-setup.sh
+test-fixtures/
+TEST-PLAN.md
+COWORK.md
+TODO.md

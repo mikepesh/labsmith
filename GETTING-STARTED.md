@@ -138,12 +138,6 @@ python3 query.py get 12 13 14
 
 # Stats: chunk count, total lines, breakdown by doc type
 python3 query.py stats --workshop cisco-to-fortinet
-
-# Run the automated test suite
-bash test-pipeline.sh
-
-# Run tests with a real PDF
-bash test-pipeline.sh /path/to/your-doc.pdf
 ```
 
 ## Directory structure
@@ -172,9 +166,7 @@ labsmith/
   chunker.py               ← Markdown → SQLite chunker
   query.py                 ← SQLite search and retrieval
   labsmith.db              ← Shared reference store (gitignored)
-  test-pipeline.sh         ← Automated test suite
   PROJECT.md               ← Full project definition and architecture
-  TEST-PLAN.md             ← Test plan (automated + manual)
 ```
 
 ## Plugin packaging

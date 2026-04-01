@@ -134,9 +134,6 @@ python3 query.py search "VLAN" --workshop my-workshop
 
 # Load specific chunks by ID
 python3 query.py get 12 13 14
-
-# Run the automated test suite
-bash test-pipeline.sh
 ```
 
 ---
@@ -212,7 +209,6 @@ labsmith/
   query.py                 # Searches and retrieves chunks
   labsmith.db              # SQLite reference store (gitignored)
   labsmith.plugin          # Installable Cowork plugin file
-  test-pipeline.sh         # Automated tests
 ```
 
 ---

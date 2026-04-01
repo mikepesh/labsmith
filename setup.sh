@@ -346,15 +346,19 @@ if ! bash -n "$MARKER_DIR/process-now.sh" 2>/dev/null; then
 fi
 echo "  $PASS Marker stack and process-now.sh OK"
 
-# ── Verify chunker + query ──
-echo "Testing chunker and query tool..."
-TEST_RESULT=$(bash "$LABSMITH_DIR/test-pipeline.sh" 2>&1) || true
-if echo "$TEST_RESULT" | grep -qE "PASS:[[:space:]]*[1-9]"; then
-    PASSED=$(echo "$TEST_RESULT" | grep -oE "PASS:[[:space:]]*[0-9]+" | head -1)
-    echo "  $PASS Pipeline tests reported $PASSED"
+# ── Verify chunker + query (optional; test-pipeline.sh is maintainer-local, not in clone) ──
+if [ -f "$LABSMITH_DIR/test-pipeline.sh" ]; then
+    echo "Testing chunker and query tool..."
+    TEST_RESULT=$(bash "$LABSMITH_DIR/test-pipeline.sh" 2>&1) || true
+    if echo "$TEST_RESULT" | grep -qE "PASS:[[:space:]]*[1-9]"; then
+        PASSED=$(echo "$TEST_RESULT" | grep -oE "PASS:[[:space:]]*[0-9]+" | head -1)
+        echo "  $PASS Pipeline tests reported $PASSED"
+    else
+        echo "  $WARN Tests had issues (may need a PDF for full test suite)"
+        echo "     Run manually: bash test-pipeline.sh"
+    fi
 else
-    echo "  $WARN Tests had issues (may need a PDF for full test suite)"
-    echo "     Run manually: bash test-pipeline.sh"
+    echo "Skipping pipeline tests (test-pipeline.sh not present — normal for a GitHub clone)."
 fi
 
 # ── Done — hand off to labsmith.sh (6-step interactive flow) ──

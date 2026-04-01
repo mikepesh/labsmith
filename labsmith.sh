@@ -5,7 +5,7 @@
 # Usage:  cd /path/to/labsmith && bash labsmith.sh
 #         bash labsmith.sh --step prereqs
 #         LABSMITH_WORKSHOP=my-ws bash labsmith.sh --step convert
-# Sim menu: bash labsmith-sim.sh
+# Optional local: labsmith-sim.sh (maintainer step picker; not in public clone)
 
 # ── ANSI ─────────────────────────────────────────────────────────────
 BOLD='\033[1m'
@@ -36,7 +36,11 @@ SELECTED_WORKSHOP=""
 
 labsmith_cleanup_int() {
     echo ""
-    echo -e "${RED}Interrupted — run ${BOLD}bash labsmith.sh${NC}${RED} or ${BOLD}bash labsmith-sim.sh${NC}${RED} again anytime.${NC}"
+    if [[ -f "$LABSMITH_DIR/labsmith-sim.sh" ]]; then
+        echo -e "${RED}Interrupted — run ${BOLD}bash labsmith.sh${NC}${RED} or ${BOLD}bash labsmith-sim.sh${NC}${RED} again anytime.${NC}"
+    else
+        echo -e "${RED}Interrupted — run ${BOLD}bash labsmith.sh${NC}${RED} again anytime.${NC}"
+    fi
     exit 130
 }
 trap labsmith_cleanup_int INT
@@ -773,7 +777,9 @@ labsmith_usage() {
     echo ""
     echo "  bash labsmith.sh              Run all steps (welcome → done)"
     echo "  bash labsmith.sh --step STEP  Run one step (for testing)"
-    echo "  bash labsmith-sim.sh          Interactive step picker"
+    if [[ -f "$LABSMITH_DIR/labsmith-sim.sh" ]]; then
+        echo "  bash labsmith-sim.sh          Interactive step picker (local)"
+    fi
     echo ""
     echo "Steps: welcome, prereqs, workshop, drop, convert, done"
     echo "Aliases: files (drop), summary (done)"

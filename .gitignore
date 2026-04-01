@@ -13,6 +13,8 @@ marker/venv/
 .cursor-prompts/
 
 # Maintainer-only / local QA (not published to GitHub)
+GETTING-STARTED.md
+labsmith-sim.sh
 test-pipeline.sh
 test-setup.sh
 test-fixtures/

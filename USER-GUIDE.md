@@ -36,7 +36,7 @@ cd ~/Documents/labsmith
 bash setup.sh
 ```
 
-The setup script checks Python 3.9+, installs the PDF converter, runs the test suite, and tells you if anything is wrong. If everything passes, you're ready.
+The setup script checks Python 3.9+ and git, can install missing dependencies on macOS (Homebrew) or Debian/Ubuntu (apt), installs the PDF stack under `marker/venv/`, and verifies the marker tooling. If `test-pipeline.sh` exists locally, that suite runs too; otherwise setup skips it (normal for a fresh clone). Prerequisite behavior is shared with `labsmith.sh` in `scripts/prereqs-common.sh` — change install rules there so both entry points stay in sync.
 
 ### 2. Install the Cowork plugin
 
@@ -188,6 +188,10 @@ python3 query.py get 12 13 14
 
 ```
 labsmith/
+  setup.sh                 # First-run checks, venv, verification; then optional launch of labsmith.sh
+  labsmith.sh              # Interactive wizard (prereqs → workshop → PDFs → convert → done)
+  scripts/
+    prereqs-common.sh      # Shared Python/git/venv install logic (sourced by setup.sh and labsmith.sh)
   marker/
     process-now.sh         # PDF conversion script
     to-process/            # Drop PDFs here

@@ -1,31 +1,47 @@
 # LabSmith v2 — Project State
 
 ## Current version
-v0.1.0-beta (committed, not tagged)
+v0.1.0 (tagged, released on GitHub)
 
 ## Last completed (2026-03-31)
-- Plugin structure built, packaged as labsmith.plugin, installed in Cowork
-- plugin.json spec-compliant (no skills array, author/keywords, v0.1.0)
-- Skill descriptions tuned for aggressive triggering per Cowork best practices
-- chunker.py + query.py built and tested (13/13 automated tests pass)
-- Token efficiency validated: search metadata 29x cheaper, 10.3x projected reduction for 7-doc workshop
-- FortiOS 7.6.6 Admin Guide converted (4,672 pages → 1,653 chunks via h1–h3 splitting)
+- Plugin packaged as labsmith.plugin, installed in Cowork, both skills working
+- Token efficiency validated: 10.3x projected reduction for 7-doc workshop
+- FortiOS 7.6.6 Admin Guide converted (4,672 pages → 249 chunks after chunker fix)
+- Chunker fixed to split on h1–h3, skip CLI-looking headings (was 1,653 noisy chunks, now 249 clean)
 - process-now.sh upgraded with 50-page batch progress output
-- Three modules built from admin guide: Initial Setup (429 lines), Firewall Policies (496 lines), Security Fabric (438 lines)
+- Three modules built: Initial Setup (429 lines), Firewall Policies (496 lines), Security Fabric (438 lines)
 - workshops/ gitignored — modules are per-engagement output, not source
-- GETTING-STARTED.md in repo
+- setup.sh with interactive prereq install (Homebrew/apt), tested with test-setup.sh simulation harness
+- GETTING-STARTED.md removed — replaced by USER-GUIDE.md
+- USER-GUIDE.md with expanded best practices (document selection, workshop organization, module building)
+- README.md cleaned up — concise, links to USER-GUIDE.md, AI disclosure, feedback link
+- TODO.md documents remaining chunk title quality issue
+- labsmith.plugin repackaged with latest skill descriptions
+- All paths updated from ~/Documents/CODING/labsmith to ~/Documents/labsmith
+- v0.1.0 tagged and GitHub release created with .plugin attachment
+- Clone URL switched from SSH to HTTPS for non-dev users
+
+## In progress (Cursor)
+- labsmith.sh — interactive terminal script replacing manual setup/convert workflow
+- --doc-type made optional (default: `reference`) to reduce user friction
+- Chunker title quality improvements (remaining ~23 junk titles)
 
 ## Open issues
-- Chunk titles: many are CLI commands instead of meaningful section names (chunker picks up code examples as headings). Doesn't block module generation but hurts discoverability.
-- SQLite writes blocked on Cowork mounts — convert skill must run from Terminal (documented, by design)
+- ~23 chunk titles are still junk (snmpwalk, log output, ktpass) — cosmetic, doesn't block module building
+- SQLite writes blocked on Cowork mounts — convert must run from Terminal (by design)
+- labsmith.plugin may need repackaging after Cursor completes current changes
+
+## Documentation rule
+Update USER-GUIDE.md as the last step of every feature, not as a separate task. Include doc updates in Cursor prompts.
 
 ## Repo
-`~/Documents/labsmith/` → origin/main
+`~/Documents/labsmith/` → github.com/mikepesh/labsmith (public)
 
 ## Quick reference
+- Interactive workflow: `bash labsmith.sh`
 - Convert docs: `bash marker/process-now.sh` then `python3 chunker.py ...`
-- Query chunks: `python3 query.py --db labsmith.db [list|search|get|stats]`
+- Query chunks: `python3 query.py [list|search|get|stats]`
 - Run tests: `bash test-pipeline.sh`
+- Test setup scenarios: `bash test-setup.sh [--no-python|--no-git|--no-brew|--clean]`
 - Modules live in: `workshops/<name>/modules/` (gitignored)
 - Plugin skills: `plugin/skills/convert/` and `plugin/skills/build-module/`
-- Install plugin: drop `labsmith.plugin` into a Cowork session

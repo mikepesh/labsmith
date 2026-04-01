@@ -357,7 +357,7 @@ else
     echo "     Run manually: bash test-pipeline.sh"
 fi
 
-# ── Done — hand off to labsmith.sh (6-step flow in CURSOR-INTERACTIVE-SCRIPT.md) ──
+# ── Done — hand off to labsmith.sh (6-step interactive flow) ──
 LS_ROOT_DISP=$(labsmith_display_path "$LABSMITH_DIR")
 
 echo ""

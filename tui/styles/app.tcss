@@ -1,0 +1,141 @@
+/* LabSmith — branded Textual theme (dark, blue accent) */
+
+Screen {
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+#title-spacer {
+    height: 0;
+}
+
+.brand-title {
+    text-align: center;
+    text-style: bold;
+    color: #58a6ff;
+    background: #161b22;
+    padding: 1 2;
+    border: heavy #30363d;
+    margin: 1 2 0 2;
+}
+
+.brand-tagline {
+    text-align: center;
+    color: #8b949e;
+    margin: 0 2 1 2;
+}
+
+.screen-title {
+    text-align: center;
+    text-style: bold;
+    color: #79c0ff;
+    background: #161b22;
+    padding: 1 2;
+    border: tall #21262d;
+    margin: 1 2 0 2;
+}
+
+.screen-subtitle {
+    text-align: center;
+    color: #8b949e;
+    margin: 0 2 1 2;
+}
+
+.warn-text {
+    color: #d29922;
+}
+
+.main-panel {
+    align: center middle;
+    width: 100%;
+    height: 1fr;
+}
+
+.menu-buttons {
+    width: 48;
+    height: auto;
+    margin: 1 2;
+}
+
+.menu-buttons Button {
+    margin: 0 0 1 0;
+}
+
+.selection-scroll {
+    height: 12;
+    margin: 0 2;
+    border: solid #30363d;
+    background: #161b22;
+}
+
+.action-row {
+    height: auto;
+    margin: 1 2;
+}
+
+.action-row Button {
+    margin-right: 2;
+}
+
+.log-label {
+    margin: 1 2 0 2;
+    color: #8b949e;
+    text-style: bold;
+}
+
+RichLog {
+    height: 1fr;
+    margin: 0 2 1 2;
+    border: solid #30363d;
+    background: #0d1117;
+}
+
+.chunk-form {
+    margin: 0 2;
+    height: auto;
+}
+
+.chunk-form Input {
+    margin-bottom: 1;
+}
+
+.chunk-form Select {
+    margin-bottom: 1;
+}
+
+.tab-inner {
+    padding: 1 2;
+    height: auto;
+}
+
+.tab-inner Button {
+    margin-top: 1;
+}
+
+.info-scroll {
+    height: 1fr;
+    margin: 0 2 1 2;
+    border: solid #30363d;
+    background: #161b22;
+}
+
+#info_body {
+    padding: 1 2;
+}
+
+Footer {
+    background: #161b22;
+}
+
+TabbedContent {
+    margin: 0 2;
+}
+
+TabPane {
+    padding: 0;
+}
+
+SelectionList {
+    height: auto;
+    max-height: 100%;
+}

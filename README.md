@@ -12,7 +12,9 @@ cd ~/Documents/labsmith
 bash labsmith.sh
 ```
 
-The wizard walks through prerequisites (Python, git, PDF stack) and the rest of the pipeline — same checks as `setup.sh`, which lives on for an optional install-and-verify-only pass if you prefer that first.
+`labsmith.sh` is a tiny bootstrap (silent if everything is ready): it ensures **Python 3.9+**, `marker/venv/` with **pymupdf4llm** and **Textual**, then starts the **terminal UI** — menus for convert, chunk, query, tests, and setup info. Use `bash labsmith.sh --db other.db` for a non-default database.
+
+Optional: `bash setup.sh` for the older install-and-verify shell flow; `bash scripts/labsmith-wizard.sh` for the legacy interactive bash wizard.
 
 Then install `labsmith.plugin` in Claude Desktop.
 

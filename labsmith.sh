@@ -30,6 +30,9 @@ TP_FAIL="❌"
 TP_WARN="⚠️"
 LABSMITH_ISSUES_URL="https://github.com/mikepesh/labsmith/issues"
 
+# shellcheck source=scripts/prereqs-common.sh
+. "$SCRIPT_DIR/scripts/prereqs-common.sh"
+
 needs_python=false
 needs_git=false
 SELECTED_WORKSHOP=""
@@ -65,8 +68,7 @@ labsmith_str_lower() {
 
 # User-facing paths only (Cowork/docs assume ~/Documents/labsmith, not .../Documents/CODING/labsmith)
 labsmith_path_for_display() {
-    local d="$1"
-    echo "${d//\/Documents\/CODING\/labsmith/\/Documents\/labsmith}"
+    labsmith_prereqs_display_path_for_docs "$1"
 }
 
 # Center plain ASCII in the banner interior (${#} is exact for ASCII on bash 3.2)
@@ -157,156 +159,14 @@ labsmith_workshop_line_stats() {
     echo "$chunks $typesline"
 }
 
-# Same install messaging as setup.sh (manual)
-labsmith_manual_macos() {
-    echo ""
-    echo -e "${RED}Install prerequisites manually, then re-run:${NC}"
-    echo -e "     ${CYAN}bash labsmith.sh${NC}"
-    echo ""
-    echo "  • Homebrew (if needed): https://brew.sh"
-    $needs_python && echo "  • Python 3.9+:  brew install python@3.12"
-    $needs_python && echo "    export PATH=\"\$(brew --prefix python@3.12)/bin:\$PATH\"  (before Apple /usr/bin/python3)"
-    $needs_git && echo "  • Git:             brew install git"
-    echo ""
-}
-
-labsmith_manual_linux() {
-    echo ""
-    echo -e "${RED}Install prerequisites manually, then re-run:${NC}"
-    echo -e "     ${CYAN}bash labsmith.sh${NC}"
-    echo ""
-    echo "  Example (Debian/Ubuntu):"
-    echo "    sudo apt-get update && sudo apt-get install -y python3 python3-venv git"
-    echo ""
-}
-
-labsmith_python_version_or_empty() {
-    python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo ""
-}
-
-# python@3.12 is keg-only; put it ahead of /usr/bin/python3 (often 3.9 on macOS)
-labsmith_prepend_brew_python312_path() {
-    [ "$(uname)" = "Darwin" ] || return 1
-    brew --version >/dev/null 2>&1 || return 1
-    local px
-    px=$(brew --prefix python@3.12 2>/dev/null) || return 1
-    [ -n "$px" ] && [ -x "$px/bin/python3" ] || return 1
-    export PATH="$px/bin:$PATH"
-    return 0
-}
-
-labsmith_git_version_or_empty() {
-    if git --version >/dev/null 2>&1; then
-        git --version 2>/dev/null | awk '{print $3}'
-    else
-        echo ""
-    fi
-}
-
-# Mirrors setup.sh prerequisite install when needs_python || needs_git
 labsmith_install_prereqs_if_needed() {
     if ! $needs_python && ! $needs_git; then
         return 0
     fi
-    echo ""
-    if [[ "$(uname)" == "Darwin" ]]; then
-        local brew_line=""
-        if brew --version >/dev/null 2>&1; then
-            brew_line=$(brew --version 2>/dev/null | head -n1)
-        fi
-        if [ -z "$brew_line" ]; then
-            echo -e "${YELLOW}Missing prerequisites require Homebrew to install automatically.${NC}"
-            echo ""
-            read -r -p "Install Homebrew? (y/n) " -n 1 hr
-            echo ""
-            if [[ $hr =~ ^[Yy]$ ]]; then
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
-                [ -f /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
-                [ -f /usr/local/bin/brew ] && eval "$(/usr/local/bin/brew shellenv)"
-                if ! brew --version >/dev/null 2>&1; then
-                    echo -e "${RED}Homebrew install did not produce a working brew.${NC}"
-                    labsmith_manual_macos
-                    exit 1
-                fi
-            else
-                echo -e "${RED}Homebrew is required on macOS for the guided install path you skipped.${NC}"
-                labsmith_manual_macos
-                exit 1
-            fi
-        fi
-        local to_install=""
-        $needs_python && to_install="python@3.12"
-        if $needs_git; then
-            [ -n "$to_install" ] && to_install="$to_install git" || to_install="git"
-        fi
-        echo ""
-        read -r -p "Install $to_install via Homebrew? (y/n) " -n 1 hr
-        echo ""
-        if [[ $hr =~ ^[Yy]$ ]]; then
-            brew install $to_install || true
-            echo ""
-            if $needs_python; then
-                labsmith_prepend_brew_python312_path || true
-                local pyc maj min
-                pyc=$(labsmith_python_version_or_empty)
-                if [ -z "$pyc" ]; then
-                    echo -e "${RED}Python install failed.${NC}"; labsmith_manual_macos; exit 1
-                fi
-                maj=$(echo "$pyc" | cut -d. -f1); min=$(echo "$pyc" | cut -d. -f2)
-                if ! { [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 9 ]; }; }; then
-                    echo -e "${RED}Python still below 3.9.${NC}"; labsmith_manual_macos; exit 1
-                fi
-            fi
-            if $needs_git; then
-                if ! git --version >/dev/null 2>&1; then
-                    echo -e "${RED}git install failed.${NC}"; labsmith_manual_macos; exit 1
-                fi
-            fi
-        else
-            echo -e "${RED}Declined installing: $to_install${NC}"
-            labsmith_manual_macos
-            exit 1
-        fi
-    elif [[ "$(uname)" == "Linux" ]]; then
-        local to_install=""
-        $needs_python && to_install="python3 python3-venv"
-        if $needs_git; then
-            [ -n "$to_install" ] && to_install="$to_install git" || to_install="git"
-        fi
-        echo "Missing: $to_install"
-        if apt-get --version >/dev/null 2>&1; then
-            read -r -p "Install via apt? (y/n) " -n 1 hr
-            echo ""
-            if [[ $hr =~ ^[Yy]$ ]]; then
-                sudo apt-get update -qq && sudo apt-get install -y $to_install || true
-            else
-                labsmith_manual_linux
-                exit 1
-            fi
-        else
-            echo -e "${RED}apt-get not found.${NC}"
-            labsmith_manual_linux
-            exit 1
-        fi
-        if $needs_python; then
-            local pyc maj min
-            pyc=$(labsmith_python_version_or_empty)
-            if [ -z "$pyc" ]; then labsmith_manual_linux; exit 1; fi
-            maj=$(echo "$pyc" | cut -d. -f1); min=$(echo "$pyc" | cut -d. -f2)
-            if ! { [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 9 ]; }; }; then
-                labsmith_manual_linux; exit 1
-            fi
-        fi
-        if $needs_git && ! git --version >/dev/null 2>&1; then
-            labsmith_manual_linux
-            exit 1
-        fi
-    else
-        echo -e "${RED}Automatic install only on macOS (Homebrew) and Linux (apt).${NC}"
-        labsmith_manual_linux
-        exit 1
-    fi
-    return 0
+    LABSMITH_PREREQS_USE_COLOR=1
+    LABSMITH_PREREQS_RERUN_CMD="bash labsmith.sh"
+    labsmith_prereqs_install_system_packages
+    unset LABSMITH_PREREQS_USE_COLOR LABSMITH_PREREQS_RERUN_CMD
 }
 
 labsmith_pymupdf_ok() {
@@ -314,22 +174,7 @@ labsmith_pymupdf_ok() {
 }
 
 labsmith_ensure_pymupdf_and_dirs() {
-    mkdir -p "$MARKER_DIR/to-process" "$MARKER_DIR/output" "$MARKER_DIR/processed"
-    if labsmith_pymupdf_ok; then
-        return 0
-    fi
-    echo -e "  ${TP_WARN} ${BOLD}pymupdf4llm${NC} not in Marker venv — installing..."
-    python3 -m venv "$VENV_DIR" 2>/dev/null || true
-    if [ -f "$VENV_DIR/bin/pip" ]; then
-        "$VENV_DIR/bin/pip" install --quiet pymupdf4llm 2>/dev/null || true
-    fi
-    if labsmith_pymupdf_ok; then
-        echo -e "  ${GREEN}${TP_PASS}${NC}  ${BOLD}pymupdf4llm${NC} installed"
-        return 0
-    fi
-    echo -e "  ${RED}${TP_FAIL}${NC}  Could not install pymupdf4llm."
-    echo "     Try: cd $MARKER_DIR && python3 -m venv venv && venv/bin/pip install pymupdf4llm"
-    exit 1
+    labsmith_prereqs_ensure_pymupdf_venv wizard
 }
 
 # For --step convert|done when workshop selection was skipped
@@ -388,47 +233,23 @@ labsmith_step_prereqs() {
     needs_python=false
     needs_git=false
 
-    if [ "$(uname)" = "Darwin" ]; then
-        if [ -x /opt/homebrew/bin/brew ]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-        elif [ -x /usr/local/bin/brew ]; then
-            eval "$(/usr/local/bin/brew shellenv)"
-        fi
-    fi
+    labsmith_prereqs_brew_shellenv_darwin
+    labsmith_prereqs_eval_needs_flags
+    pyver=$LABSMITH_PREREQS_CACHED_PY_VER
+    gitver=$LABSMITH_PREREQS_CACHED_GIT_VER
 
-    pyver=$(labsmith_python_version_or_empty)
-    if [ -n "$pyver" ]; then
-        local maj min
-        maj=$(echo "$pyver" | cut -d. -f1)
-        min=$(echo "$pyver" | cut -d. -f2)
-        if [ "$maj" -lt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -lt 9 ]; }; then
-            labsmith_prepend_brew_python312_path && pyver=$(labsmith_python_version_or_empty)
-        fi
-    else
-        labsmith_prepend_brew_python312_path && pyver=$(labsmith_python_version_or_empty)
-    fi
-
-    if [ -n "$pyver" ]; then
-        local maj min
-        maj=$(echo "$pyver" | cut -d. -f1)
-        min=$(echo "$pyver" | cut -d. -f2)
-        if [ "$maj" -gt 3 ] || { [ "$maj" -eq 3 ] && [ "$min" -ge 9 ]; }; then
-            py_disp=$(printf "  %-16s ${GREEN}${TP_PASS}${NC}  %s" "Python 3.9+" "$pyver")
-        else
-            py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  need 3.9+ (have %s)" "Python 3.9+" "$pyver")
-            needs_python=true
-        fi
+    if ! $needs_python; then
+        py_disp=$(printf "  %-16s ${GREEN}${TP_PASS}${NC}  %s" "Python 3.9+" "$pyver")
+    elif [ -n "$pyver" ]; then
+        py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  need 3.9+ (have %s)" "Python 3.9+" "$pyver")
     else
         py_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  not found" "Python 3.9+")
-        needs_python=true
     fi
 
-    gitver=$(labsmith_git_version_or_empty)
-    if [ -n "$gitver" ]; then
+    if ! $needs_git; then
         git_disp=$(printf "  %-16s ${GREEN}${TP_PASS}${NC}  %s" "git" "$gitver")
     else
         git_disp=$(printf "  %-16s ${RED}${TP_FAIL}${NC}  not found" "git")
-        needs_git=true
     fi
 
     if labsmith_pymupdf_ok; then
@@ -765,7 +586,7 @@ PY
 
 # ═══ CLI / main ═══
 labsmith_require_repo() {
-    if [ ! -f "$LABSMITH_DIR/chunker.py" ] || [ ! -f "$LABSMITH_DIR/query.py" ] || [ ! -f "$MARKER_DIR/process-now.sh" ]; then
+    if ! labsmith_prereqs_repo_layout_ok; then
         echo -e "${RED}Run this script from the LabSmith repository root (chunker.py / query.py / marker/ missing).${NC}"
         return 1
     fi

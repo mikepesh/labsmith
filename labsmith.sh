@@ -735,15 +735,38 @@ for dt, c in types:
 PY
     unset LABSMITH_STAT_DB LABSMITH_STAT_WS
 
+    local mount_disp starter_prompt
+    mount_disp=$(labsmith_path_for_display "$LABSMITH_DIR")
+    starter_prompt="Build a module on [topic] for the $SELECTED_WORKSHOP workshop"
+
     echo ""
     echo -e "${BOLD}  ═══ What's Next ═══${NC}"
     echo ""
-    echo "  1. Open Claude Desktop → start a Cowork session"
-    echo "  2. Mount your labsmith folder:"
-    echo -e "     📂  ${CYAN}$(labsmith_path_for_display "$LABSMITH_DIR")${NC}"
-    echo "  3. Tell Claude what module to build:"
-    echo ""
-    echo "     \"Build a module on firewall policies for the $SELECTED_WORKSHOP workshop\""
+
+    if [ "$(uname)" = "Darwin" ] && command -v pbcopy >/dev/null 2>&1; then
+        printf '%s' "$starter_prompt" | pbcopy
+        echo -e "  ${GREEN}${TP_PASS}${NC} Starter prompt copied to clipboard — replace ${BOLD}[topic]${NC} after you paste (or edit first in Notes)."
+        echo -e "  ${DIM}    $starter_prompt${NC}"
+        echo ""
+        if command -v open >/dev/null 2>&1; then
+            echo "  Opening Claude Desktop..."
+            open -a "Claude" 2>/dev/null || echo -e "  ${YELLOW}${TP_WARN}${NC} Could not launch Claude.app — open it manually."
+        fi
+        echo ""
+        echo "  Next:"
+        echo "    1. Start a Cowork session"
+        echo "    2. Mount this folder:"
+        echo -e "       📂  ${CYAN}$mount_disp${NC}"
+        echo "    3. Paste (⌘V) — your starter prompt is ready"
+    else
+        echo "  1. Open Claude Desktop → start a Cowork session"
+        echo "  2. Mount this folder:"
+        echo -e "     📂  ${CYAN}$mount_disp${NC}"
+        echo "  3. Tell Claude what module to build, e.g.:"
+        echo ""
+        echo "     \"$starter_prompt\""
+    fi
+
     echo ""
     echo "  Other things you can ask:"
     echo "     \"What topics can I build from these docs?\""

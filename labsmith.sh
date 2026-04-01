@@ -750,7 +750,13 @@ PY
     echo "     \"Build a module on VPN configuration\""
     echo "     \"What's in the reference database?\""
     echo ""
-    labsmith_pause
+    if [ "$(uname)" = "Darwin" ] && command -v open >/dev/null 2>&1; then
+        read -r -p "Press Enter to bring Claude to the front... " _
+        echo ""
+        open -a "Claude" 2>/dev/null || echo -e "  ${YELLOW}${TP_WARN}${NC} Could not open Claude — launch Claude Desktop manually."
+    else
+        labsmith_pause
+    fi
 }
 
 # ═══ CLI / main ═══

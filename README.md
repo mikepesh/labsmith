@@ -12,9 +12,9 @@ cd ~/Documents/labsmith
 bash labsmith.sh
 ```
 
-`labsmith.sh` is a tiny bootstrap (silent if everything is ready): it ensures **Python 3.9+**, `marker/venv/` with **pymupdf4llm** and **Textual**, then starts the **terminal UI** — menus for convert, chunk, query, tests, and setup info. Use `bash labsmith.sh --db other.db` for a non-default database.
+The wizard walks through prerequisites (Python, git, PDF stack) and the rest of the pipeline — same checks as `setup.sh`, which lives on for an optional install-and-verify-only pass if you prefer that first.
 
-Optional: `bash setup.sh` for the older install-and-verify shell flow; `bash scripts/labsmith-wizard.sh` for the legacy interactive bash wizard.
+**Experimental:** A Textual terminal UI lives under `tui/` for trying out menu-driven convert/chunk/query. It is **not** the default workflow. From the repo root: `bash scripts/labsmith-tui.sh` (installs `textual` into `marker/venv/` on first run).
 
 Then install `labsmith.plugin` in Claude Desktop.
 

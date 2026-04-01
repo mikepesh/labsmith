@@ -41,7 +41,7 @@ class InfoScreen(Screen[None]):
         if VENV_PYTHON.is_file():
             lines.append(f"Marker venv: OK ({VENV_PYTHON.parent.parent})")
         else:
-            lines.append("Marker venv: missing (run labsmith.sh to create)")
+            lines.append("Marker venv: missing (run bash labsmith.sh or bash setup.sh)")
         lines.append(f"Database path: {db.resolve()}")
         sz = dbutil.db_file_size(db)
         if sz is None:

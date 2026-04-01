@@ -23,13 +23,12 @@ No GitHub account? Just message me directly — Slack, email, whatever works.
 ## Prerequisites
 
 - **Claude Pro, Team, or Enterprise subscription** — Cowork mode is required, which is not available on the free tier
-- **Python 3.9+** — required to run `labsmith.sh` (the bootstrap checks this before opening the TUI)
-- **git** — to clone the repo (not checked by the TUI bootstrap)
+- **Python 3.9+** and **git** — checked when you run `labsmith.sh` (or `setup.sh` if you use that first)
 - **macOS or Linux** — the PDF converter and shell scripts assume a Unix environment
 
 ## Setup (one time, ~5 minutes)
 
-### 1. Clone and run LabSmith (terminal UI)
+### 1. Clone and run the wizard
 
 ```bash
 git clone https://github.com/mikepesh/labsmith.git ~/Documents/labsmith
@@ -37,11 +36,11 @@ cd ~/Documents/labsmith
 bash labsmith.sh
 ```
 
-The first run may print **Setting up LabSmith... (one-time)** while it creates `marker/venv/` and installs **pymupdf4llm** and **Textual** into that venv. After that, the bootstrap is quiet and launches the **Textual TUI** (`tui/`): convert PDFs, chunk to SQLite, query the database, run tests (if `test-pipeline.sh` is present), and view setup info. **Escape** returns to the main menu from any screen; choose **Quit** to exit.
+Step 2 of the wizard checks Python 3.9+ and git, can install missing dependencies on macOS (Homebrew) or Debian/Ubuntu (apt), and installs the PDF stack under `marker/venv/`. That logic lives in `scripts/prereqs-common.sh` and is the same code `setup.sh` uses.
 
-Pass a different database with `bash labsmith.sh --db path/to.db`.
+**Optional:** Run `bash setup.sh` instead if you want install-and-verify only (extra checks like `bash -n` on `process-now.sh`, optional `test-pipeline.sh` when present) and an offer to launch `labsmith.sh` afterward — useful for automation or when you want confirmation before the full wizard.
 
-**Optional:** `bash setup.sh` still runs the older prerequisite + verify flow (Homebrew/apt, `bash -n` on `process-now.sh`, optional pipeline tests) from `scripts/prereqs-common.sh`. **`bash scripts/labsmith-wizard.sh`** is the legacy all-bash interactive wizard if you need it.
+**Experimental Textual UI (testing only):** `bash scripts/labsmith-tui.sh` launches a menu-driven interface over the same underlying scripts (`process-now.sh`, `chunker.py`, `query.py`). It is **not** the supported default path; use `bash labsmith.sh` for the standard wizard.
 
 ### 2. Install the Cowork plugin
 
@@ -56,8 +55,6 @@ Everything happens in two phases, both from Terminal.
 ### Phase 1 — Convert your docs
 
 Put your vendor PDFs in `marker/to-process/` and run the pipeline. Do this from Terminal (not Cowork) because the chunker writes to SQLite, which doesn't work on Cowork-mounted directories.
-
-**Menu UI:** Run `bash labsmith.sh` and use **Convert PDFs**, **Chunk to SQLite**, and **Query Database** — they call the same scripts as below.
 
 ```bash
 cd ~/Documents/labsmith
@@ -195,18 +192,18 @@ python3 query.py get 12 13 14
 
 ```
 labsmith/
-  labsmith.sh              # Bootstrap → Textual TUI (marker/venv: pymupdf4llm + textual)
-  setup.sh                 # Optional: prereqs + verify (sources scripts/prereqs-common.sh)
+  labsmith.sh              # Main entry: wizard (prereqs → workshop → PDFs → convert → done)
+  setup.sh                 # Optional: same prereqs + extra verification; can launch labsmith.sh after
   scripts/
-    prereqs-common.sh      # Shared install logic for setup.sh (and labsmith-wizard.sh)
-    labsmith-wizard.sh     # Legacy bash wizard (optional)
-  tui/                     # Textual app: app.py, screens/, styles/app.tcss
+    prereqs-common.sh      # Shared Python/git/venv install logic (sourced by setup.sh and labsmith.sh)
+    labsmith-tui.sh        # Experimental Textual UI bootstrap (testing only)
+  tui/                     # Textual app (used only by labsmith-tui.sh)
   marker/
     process-now.sh         # PDF conversion script
     to-process/            # Drop PDFs here
     output/                # Converted markdown (gitignored)
     processed/             # PDFs after conversion (gitignored)
-    venv/                  # Python venv (pymupdf4llm, textual; gitignored)
+    venv/                  # Python environment for pymupdf4llm
   workshops/               # Generated modules live here (gitignored)
     my-workshop/
       modules/             # One .md file per module
@@ -236,7 +233,7 @@ I mention this for two reasons. First, transparency — you should know that AI 
 
 ## Troubleshooting
 
-**"pymupdf4llm not found"** — Run `bash labsmith.sh` once (it installs into `marker/venv/`), or `bash setup.sh`, or manually: `cd marker && python3 -m venv venv && venv/bin/pip install pymupdf4llm textual`.
+**"pymupdf4llm not found"** — Run `bash labsmith.sh --step prereqs` (or `bash setup.sh`) to install into `marker/venv/`. Or manually: `cd marker && python3 -m venv venv && venv/bin/pip install pymupdf4llm`.
 
 **"No files in to-process/"** — Put your PDFs in `marker/to-process/` before running `process-now.sh`.
 

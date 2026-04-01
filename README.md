@@ -9,8 +9,10 @@ A Cowork plugin that builds hands-on training modules from vendor PDFs. Convert 
 ```bash
 git clone https://github.com/mikepesh/labsmith.git ~/Documents/labsmith
 cd ~/Documents/labsmith
-bash setup.sh
+bash labsmith.sh
 ```
+
+The wizard walks through prerequisites (Python, git, PDF stack) and the rest of the pipeline — same checks as `setup.sh`, which lives on for an optional install-and-verify-only pass if you prefer that first.
 
 Then install `labsmith.plugin` in Claude Desktop.
 

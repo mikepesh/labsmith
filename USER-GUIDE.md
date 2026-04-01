@@ -23,20 +23,22 @@ No GitHub account? Just message me directly — Slack, email, whatever works.
 ## Prerequisites
 
 - **Claude Pro, Team, or Enterprise subscription** — Cowork mode is required, which is not available on the free tier
-- **Python 3.9+** and **git** — the setup script checks both
+- **Python 3.9+** and **git** — checked when you run `labsmith.sh` (or `setup.sh` if you use that first)
 - **macOS or Linux** — the PDF converter and shell scripts assume a Unix environment
 
 ## Setup (one time, ~5 minutes)
 
-### 1. Clone and run setup
+### 1. Clone and run the wizard
 
 ```bash
 git clone https://github.com/mikepesh/labsmith.git ~/Documents/labsmith
 cd ~/Documents/labsmith
-bash setup.sh
+bash labsmith.sh
 ```
 
-The setup script checks Python 3.9+ and git, can install missing dependencies on macOS (Homebrew) or Debian/Ubuntu (apt), installs the PDF stack under `marker/venv/`, and verifies the marker tooling. If `test-pipeline.sh` exists locally, that suite runs too; otherwise setup skips it (normal for a fresh clone). Prerequisite behavior is shared with `labsmith.sh` in `scripts/prereqs-common.sh` — change install rules there so both entry points stay in sync.
+Step 2 of the wizard checks Python 3.9+ and git, can install missing dependencies on macOS (Homebrew) or Debian/Ubuntu (apt), and installs the PDF stack under `marker/venv/`. That logic lives in `scripts/prereqs-common.sh` and is the same code `setup.sh` uses.
+
+**Optional:** Run `bash setup.sh` instead if you want install-and-verify only (extra checks like `bash -n` on `process-now.sh`, optional `test-pipeline.sh` when present) and an offer to launch `labsmith.sh` afterward — useful for automation or when you want confirmation before the full wizard.
 
 ### 2. Install the Cowork plugin
 
@@ -188,8 +190,8 @@ python3 query.py get 12 13 14
 
 ```
 labsmith/
-  setup.sh                 # First-run checks, venv, verification; then optional launch of labsmith.sh
-  labsmith.sh              # Interactive wizard (prereqs → workshop → PDFs → convert → done)
+  labsmith.sh              # Main entry: wizard (prereqs → workshop → PDFs → convert → done)
+  setup.sh                 # Optional: same prereqs + extra verification; can launch labsmith.sh after
   scripts/
     prereqs-common.sh      # Shared Python/git/venv install logic (sourced by setup.sh and labsmith.sh)
   marker/
@@ -227,7 +229,7 @@ I mention this for two reasons. First, transparency — you should know that AI 
 
 ## Troubleshooting
 
-**"pymupdf4llm not found"** — Re-run `bash setup.sh` — it installs this automatically. Or manually: `cd marker && python3 -m venv venv && venv/bin/pip install pymupdf4llm`.
+**"pymupdf4llm not found"** — Run `bash labsmith.sh --step prereqs` (or `bash setup.sh`) to install into `marker/venv/`. Or manually: `cd marker && python3 -m venv venv && venv/bin/pip install pymupdf4llm`.
 
 **"No files in to-process/"** — Put your PDFs in `marker/to-process/` before running `process-now.sh`.
 
